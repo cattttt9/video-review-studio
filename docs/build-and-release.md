@@ -33,7 +33,7 @@ npm run tauri build
 
 ## 安装包
 
-- NSIS 安装包：`src-tauri/target/release/bundle/nsis/Video Review Studio_0.1.0_x64-setup.exe`
+- NSIS 安装包：`src-tauri/target/release/bundle/nsis/Video Review Studio_0.1.1_x64-setup.exe`
 - 便携可执行：`src-tauri/target/release/Video Review Studio.exe`
 - 语言：简体中文 + English
 
@@ -58,4 +58,3 @@ npm run tauri build
 | 调试可执行 | `src-tauri/target/debug/` |
 | 发布可执行 | `src-tauri/target/release/` |
 | NSIS 安装包 | `src-tauri/target/release/bundle/nsis/` |
-

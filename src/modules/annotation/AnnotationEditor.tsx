@@ -83,6 +83,8 @@ export default function AnnotationEditor({
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const [textInput, setTextInput] = useState('');
   const [loadedImage, setLoadedImage] = useState<HTMLImageElement | null>(null);
+  const editingTextIdRef = useRef<string | null>(null);
+  const textOriginalRef = useRef('');
 
   useEffect(() => {
     let cancelled = false;
@@ -166,8 +168,70 @@ export default function AnnotationEditor({
     [annotations, onChange],
   );
 
+  const startEditingText = useCallback(
+    (annotation: EditableAnnotation) => {
+      onSelect(annotation.id);
+      editingTextIdRef.current = annotation.id;
+      setEditingTextId(annotation.id);
+      setTextInput(annotation.content);
+      textOriginalRef.current = annotation.content;
+    },
+    [onSelect],
+  );
+
+  const commitTextEdit = useCallback(() => {
+    const id = editingTextIdRef.current;
+    if (!id) return;
+    const target = annotations.find((a) => a.id === id);
+    let next: EditableAnnotation[];
+    if (!target || textInput.trim() === '') {
+      next = annotations.filter((a) => a.id !== id);
+    } else {
+      next = annotations.map((a) =>
+        a.id === id ? { ...a, content: textInput } : a,
+      );
+    }
+    onChange(next);
+    onHistoryCommit(next);
+    editingTextIdRef.current = null;
+    setEditingTextId(null);
+  }, [annotations, textInput, onChange, onHistoryCommit]);
+
+  const cancelTextEdit = useCallback(() => {
+    const id = editingTextIdRef.current;
+    if (!id) return;
+    const target = annotations.find((a) => a.id === id);
+    let next: EditableAnnotation[];
+    if (!target || textOriginalRef.current.trim() === '') {
+      next = annotations.filter((a) => a.id !== id);
+    } else {
+      next = annotations.map((a) =>
+        a.id === id ? { ...a, content: textOriginalRef.current } : a,
+      );
+    }
+    onChange(next);
+    onHistoryCommit(next);
+    editingTextIdRef.current = null;
+    setEditingTextId(null);
+  }, [annotations, onChange, onHistoryCommit]);
+
+  // 切换工具时自动保存当前文本编辑
+  const commitRef = useRef(commitTextEdit);
+  commitRef.current = commitTextEdit;
+  const prevToolRef = useRef(tool);
+  useEffect(() => {
+    if (prevToolRef.current !== tool && editingTextIdRef.current) {
+      commitRef.current();
+    }
+    prevToolRef.current = tool;
+  }, [tool]);
+
   const handleMouseDown = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
+      if (editingTextIdRef.current) {
+        commitTextEdit();
+        return;
+      }
       if (!fit || tool === 'select') return;
       const pos = e.target.getStage()?.getPointerPosition();
       if (!pos) return;
@@ -182,9 +246,7 @@ export default function AnnotationEditor({
           content: '',
         };
         onCommit([...annotations, annotation]);
-        onSelect(annotation.id);
-        setEditingTextId(annotation.id);
-        setTextInput('');
+        startEditingText(annotation);
         return;
       }
       const base: EditableAnnotation = {
@@ -205,7 +267,16 @@ export default function AnnotationEditor({
       }
       setDraft(base);
     },
-    [fit, tool, activeStyle, annotations, onCommit, onSelect, toNormalized],
+    [
+      fit,
+      tool,
+      activeStyle,
+      annotations,
+      onCommit,
+      toNormalized,
+      commitTextEdit,
+      startEditingText,
+    ],
   );
 
   const handleMouseMove = useCallback(
@@ -255,11 +326,9 @@ export default function AnnotationEditor({
         content: initialText,
       };
       onCommit([...annotations, annotation]);
-      onSelect(annotation.id);
-      setEditingTextId(annotation.id);
-      setTextInput(initialText);
+      startEditingText(annotation);
     },
-    [activeStyle, annotations, onCommit, onSelect],
+    [activeStyle, annotations, onCommit, startEditingText],
   );
 
   const handleDblClick = useCallback(
@@ -519,9 +588,7 @@ export default function AnnotationEditor({
               }}
               onDblClick={(e) => {
                 e.cancelBubble = true;
-                onSelect(annotation.id);
-                setEditingTextId(annotation.id);
-                setTextInput(annotation.content);
+                startEditingText(annotation);
               }}
               onTransformEnd={(e) => {
                 const next = handleTransformEnd(annotation.id, e.target);
@@ -547,6 +614,7 @@ export default function AnnotationEditor({
       annotations,
       onChange,
       dragBound,
+      startEditingText,
     ],
   );
 
@@ -593,17 +661,11 @@ export default function AnnotationEditor({
           value={textInput}
           autoFocus
           onChange={(e) => setTextInput(e.target.value)}
-          onBlur={() => {
-            const next = annotations.map((a) =>
-              a.id === editingText.id ? { ...a, content: textInput } : a,
-            );
-            onChange(next);
-            onHistoryCommit(next);
-            setEditingTextId(null);
-          }}
+          onBlur={() => commitTextEdit()}
           onKeyDown={(e) => {
             if (e.key === 'Escape') {
-              setEditingTextId(null);
+              e.stopPropagation();
+              cancelTextEdit();
             }
             if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
               (e.target as HTMLTextAreaElement).blur();

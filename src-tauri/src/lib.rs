@@ -43,6 +43,7 @@ pub fn run() {
             commands::records::refresh_project_dto,
             commands::files::write_project_file,
             commands::files::write_project_text,
+            commands::files::path_exists,
             commands::files::reveal_in_folder,
             commands::files::open_path,
             commands::portable::convert_to_portable,

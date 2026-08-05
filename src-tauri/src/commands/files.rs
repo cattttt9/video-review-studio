@@ -14,9 +14,13 @@ pub fn write_project_file(
     project_id: String,
     rel_path: String,
     data_base64: String,
+    export_dir: Option<String>,
 ) -> Result<String, AppError> {
     with_project(&state, &project_id, |handle| {
-        let root = ProjectLayout::exports(&handle.dir);
+        let root = match export_dir {
+            Some(dir) => Path::new(&dir).to_path_buf(),
+            None => ProjectLayout::exports(&handle.dir),
+        };
         fs::create_dir_all(&root)?;
         let target = safe_join_under(&root, &rel_path)
             .ok_or_else(|| AppError::Invalid("导出路径不合法".into()))?;
@@ -41,9 +45,13 @@ pub fn write_project_text(
     project_id: String,
     rel_path: String,
     content: String,
+    export_dir: Option<String>,
 ) -> Result<String, AppError> {
     with_project(&state, &project_id, |handle| {
-        let root = ProjectLayout::exports(&handle.dir);
+        let root = match export_dir {
+            Some(dir) => Path::new(&dir).to_path_buf(),
+            None => ProjectLayout::exports(&handle.dir),
+        };
         fs::create_dir_all(&root)?;
         let target = safe_join_under(&root, &rel_path)
             .ok_or_else(|| AppError::Invalid("导出路径不合法".into()))?;
@@ -53,6 +61,11 @@ pub fn write_project_text(
         fs::write(&target, content)?;
         Ok(target.to_string_lossy().to_string())
     })
+}
+
+#[tauri::command]
+pub fn path_exists(path: String) -> bool {
+    Path::new(&path).exists()
 }
 
 #[tauri::command]

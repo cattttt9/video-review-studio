@@ -46,49 +46,17 @@ export const DEFAULT_STYLE: AnnotationStyle = {
   strokeColor: '#ff3b30',
   strokeWidth: 8,
   fillColor: '#ff3b30',
-  fillOpacity: 0.15,
+  fillOpacity: 0,
   fontFamily: 'Microsoft YaHei, "PingFang SC", sans-serif',
   fontSize: 48,
-  fontWeight: 700,
+  fontWeight: 400,
   textColor: '#ffffff',
   textStrokeColor: '#000000',
-  textStrokeWidth: 6,
+  textStrokeWidth: 0,
   background: '#000000',
-  backgroundOpacity: 0.45,
+  backgroundOpacity: 0,
   align: 'left',
   lineHeight: 1.3,
-};
-
-export const TEXT_PRESETS: Record<string, AnnotationStyle> = {
-  白字黑边: {
-    ...DEFAULT_STYLE,
-    textColor: '#ffffff',
-    textStrokeColor: '#000000',
-    textStrokeWidth: 8,
-    backgroundOpacity: 0,
-  },
-  黄字黑边: {
-    ...DEFAULT_STYLE,
-    textColor: '#ffd500',
-    textStrokeColor: '#000000',
-    textStrokeWidth: 8,
-    backgroundOpacity: 0,
-  },
-  红底白字: {
-    ...DEFAULT_STYLE,
-    textColor: '#ffffff',
-    textStrokeColor: '#000000',
-    textStrokeWidth: 4,
-    background: '#ff4d4f',
-    backgroundOpacity: 1,
-  },
-  半透明黑底白字: {
-    ...DEFAULT_STYLE,
-    textColor: '#ffffff',
-    textStrokeWidth: 2,
-    background: '#000000',
-    backgroundOpacity: 0.55,
-  },
 };
 
 export function encodeGeometry(geometry: NormalizedGeometry): string {

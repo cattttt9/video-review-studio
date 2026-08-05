@@ -2,21 +2,25 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Alert, App as AntApp, Button, Modal, Select, Tooltip } from 'antd';
 import {
+  AimOutlined,
   ArrowDownOutlined,
+  ArrowRightOutlined,
   ArrowUpOutlined,
-  CheckOutlined,
+  BorderOutlined,
   CloudDownloadOutlined,
   DeleteOutlined,
   EditOutlined,
   ExportOutlined,
+  FontSizeOutlined,
   FullscreenOutlined,
   HomeOutlined,
-  MinusOutlined,
+  LineOutlined,
   PauseOutlined,
   PlayCircleOutlined,
   PlusOutlined,
   RedoOutlined,
   SaveOutlined,
+  SelectOutlined,
   SoundOutlined,
   StepBackwardOutlined,
   StepForwardOutlined,
@@ -53,13 +57,13 @@ import ExportModal from '../modules/export/ExportModal';
 import { generateThumbnail } from '../modules/thumbnail/thumbnail';
 
 const TOOL_ITEMS: Array<{ tool: ToolType; label: string; icon: React.ReactNode; key: string }> = [
-  { tool: 'select', label: '选择', icon: <CheckOutlined />, key: 'select' },
+  { tool: 'select', label: '选择', icon: <SelectOutlined />, key: 'select' },
   { tool: 'pen', label: '画笔 (P)', icon: <EditOutlined />, key: 'pen' },
-  { tool: 'line', label: '直线', icon: <MinusOutlined />, key: 'line' },
-  { tool: 'arrow', label: '箭头 (A)', icon: <ArrowUpOutlined />, key: 'arrow' },
-  { tool: 'rect', label: '矩形 (R)', icon: <EditOutlined />, key: 'rect' },
-  { tool: 'ellipse', label: '椭圆', icon: <EditOutlined />, key: 'ellipse' },
-  { tool: 'text', label: '文本 (T)', icon: <EditOutlined />, key: 'text' },
+  { tool: 'line', label: '直线', icon: <LineOutlined />, key: 'line' },
+  { tool: 'arrow', label: '箭头 (A)', icon: <ArrowRightOutlined />, key: 'arrow' },
+  { tool: 'rect', label: '矩形 (R)', icon: <BorderOutlined />, key: 'rect' },
+  { tool: 'ellipse', label: '椭圆', icon: <AimOutlined />, key: 'ellipse' },
+  { tool: 'text', label: '文本 (T)', icon: <FontSizeOutlined />, key: 'text' },
 ];
 
 export default function WorkspacePage() {
@@ -653,7 +657,7 @@ export default function WorkspacePage() {
         />
       )}
 
-      <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+      <div style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden' }}>
         {/* 左侧工具栏 */}
         <div
           style={{
@@ -901,6 +905,7 @@ export default function WorkspacePage() {
         <div
           style={{
             width: 300,
+            minHeight: 0,
             background: '#fff',
             borderLeft: '1px solid var(--vrs-border)',
             display: 'flex',
@@ -960,8 +965,20 @@ export default function WorkspacePage() {
           </div>
           <div className="vrs-card-list">
             {records.length === 0 && (
-              <div className="vrs-muted vrs-tiny" style={{ textAlign: 'center', padding: 24 }}>
-                暂无记录，点击“新建记录”创建第一条复盘
+              <div
+                className="vrs-muted"
+                style={{
+                  textAlign: 'center',
+                  padding: 32,
+                  lineHeight: 1.9,
+                }}
+              >
+                <div style={{ fontWeight: 600, color: 'var(--vrs-text)' }}>
+                  暂无标注记录
+                </div>
+                <div className="vrs-tiny">
+                  在视频画面中添加标注后，记录将显示在这里。
+                </div>
               </div>
             )}
             {records.map((record, index) => {

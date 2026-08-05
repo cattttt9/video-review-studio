@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import type { ReviewRecordDto } from '../../types';
 import { formatTimeMs } from '../../utils/time';
 
@@ -27,6 +27,8 @@ function chooseTickStep(viewMs: number, width: number): number {
 
 export default function Timeline({ durationMs, currentTimeMs, records, onSeek }: TimelineProps) {
   const [view, setView] = useState<ViewWindow>({ start: 0, end: durationMs });
+  const [dragging, setDragging] = useState(false);
+  const rafRef = useRef<number | null>(null);
 
   const effectiveView = useMemo<ViewWindow>(() => {
     if (durationMs <= 0) return { start: 0, end: 1 };
@@ -73,12 +75,67 @@ export default function Timeline({ durationMs, currentTimeMs, records, onSeek }:
     [records, effectiveView],
   );
 
-  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const ratio = (e.clientX - rect.left) / rect.width;
-    const ms = effectiveView.start + ratio * (effectiveView.end - effectiveView.start);
-    onSeek(Math.max(0, Math.min(durationMs, ms)));
-  };
+  const msFromEvent = useCallback(
+    (e: { clientX: number; currentTarget: HTMLDivElement }) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const ratio = (e.clientX - rect.left) / rect.width;
+      const ms =
+        effectiveView.start +
+        ratio * (effectiveView.end - effectiveView.start);
+      return Math.max(0, Math.min(durationMs, ms));
+    },
+    [effectiveView, durationMs],
+  );
+
+  const seekAt = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      onSeek(msFromEvent(e));
+    },
+    [onSeek, msFromEvent],
+  );
+
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      e.currentTarget.setPointerCapture(e.pointerId);
+      setDragging(true);
+      seekAt(e);
+    },
+    [seekAt],
+  );
+
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!dragging) return;
+      if (rafRef.current != null) return;
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null;
+        seekAt(e);
+      });
+    },
+    [dragging, seekAt],
+  );
+
+  const handlePointerUp = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+      setDragging(false);
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    },
+    [],
+  );
+
+  const handleClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (dragging) return;
+      onSeek(msFromEvent(e));
+    },
+    [dragging, onSeek, msFromEvent],
+  );
 
   return (
     <div className="vrs-timeline">
@@ -89,7 +146,15 @@ export default function Timeline({ durationMs, currentTimeMs, records, onSeek }:
           </span>
         ))}
       </div>
-      <div className="vrs-timeline-track" onClick={handleClick}>
+      <div
+        className="vrs-timeline-track"
+        style={{ cursor: dragging ? 'grabbing' : 'grab' }}
+        onClick={handleClick}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+      >
         {visibleRecords.map((r) => {
           const left = (toX(r.startTimeMs) / width) * 100;
           if (r.timeMode === 'interval') {
