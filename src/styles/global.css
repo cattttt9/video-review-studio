@@ -1,0 +1,334 @@
+:root {
+  --vrs-bg: #f5f5f5;
+  --vrs-panel: #ffffff;
+  --vrs-border: #e2e2e2;
+  --vrs-text: #262626;
+  --vrs-muted: #8c8c8c;
+  --vrs-accent: #1677ff;
+  --vrs-danger: #ff4d4f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', Roboto, sans-serif;
+  color: var(--vrs-text);
+  background: var(--vrs-bg);
+  overflow: hidden;
+}
+
+.vrs-full {
+  height: 100%;
+}
+
+.vrs-flex {
+  display: flex;
+}
+
+.vrs-flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vrs-grow {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.vrs-muted {
+  color: var(--vrs-muted);
+}
+
+.vrs-tiny {
+  font-size: 12px;
+}
+
+.vrs-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 记录卡片 */
+.vrs-record-card {
+  position: relative;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: var(--vrs-panel);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+  overflow: hidden;
+}
+
+.vrs-record-card.selected {
+  border-color: var(--vrs-accent);
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.18);
+}
+
+.vrs-record-card .thumb-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: repeating-conic-gradient(#eee 0% 25%, #fafafa 0% 50%) 50% / 16px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vrs-record-card .thumb-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.vrs-record-card .card-body {
+  padding: 6px 8px 8px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.vrs-record-card .card-time {
+  color: var(--vrs-accent);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.vrs-record-card .card-title {
+  font-weight: 600;
+  margin: 2px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vrs-record-card .card-meta {
+  color: var(--vrs-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vrs-record-card .card-actions {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: none;
+  gap: 2px;
+}
+
+.vrs-record-card:hover .card-actions {
+  display: flex;
+}
+
+.vrs-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+/* 标注画布容器 */
+.vrs-stage-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.vrs-stage-wrap .konvajs-content {
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.5);
+}
+
+.vrs-text-input {
+  font-size: 14px;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+
+/* 时间轴 */
+.vrs-timeline {
+  position: relative;
+  height: 58px;
+  background: #fff;
+  border-top: 1px solid var(--vrs-border);
+  user-select: none;
+}
+
+.vrs-timeline-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 18px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.vrs-timeline-mark {
+  position: absolute;
+  top: 18px;
+  width: 3px;
+  height: 20px;
+  border-radius: 2px;
+  background: var(--vrs-accent);
+  cursor: pointer;
+}
+
+.vrs-timeline-mark.interval {
+  height: 12px;
+  top: 22px;
+  background: rgba(22, 119, 255, 0.45);
+  border-left: 3px solid var(--vrs-accent);
+}
+
+.vrs-timeline-playhead {
+  position: absolute;
+  top: 8px;
+  bottom: 0;
+  width: 2px;
+  background: #f5222d;
+  pointer-events: none;
+}
+
+.vrs-timeline-ruler {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 16px;
+  font-size: 10px;
+  color: var(--vrs-muted);
+  padding-left: 4px;
+  overflow: hidden;
+}
+
+/* 预览弹窗 */
+.vrs-preview-img {
+  max-width: 100%;
+  max-height: 100%;
+  cursor: grab;
+  transform-origin: 0 0;
+  user-select: none;
+}
+
+.vrs-preview-img.zooming {
+  cursor: grabbing;
+}
+
+/* 首页 */
+.vrs-home {
+  height: 100%;
+  overflow-y: auto;
+  background: linear-gradient(180deg, #fafafa 0%, #f0f2f5 100%);
+}
+
+.vrs-home-header {
+  padding: 36px 48px 20px;
+}
+
+.vrs-home-title {
+  font-size: 30px;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.vrs-home-sub {
+  color: var(--vrs-muted);
+  margin: 0 0 20px;
+}
+
+.vrs-home-body {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 32px 48px;
+}
+
+.vrs-recent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.vrs-project-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid var(--vrs-border);
+  padding: 16px;
+  cursor: pointer;
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s;
+}
+
+.vrs-project-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+.vrs-project-card .p-title {
+  font-weight: 600;
+  margin: 0 0 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vrs-project-card .p-meta {
+  color: var(--vrs-muted);
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.vrs-project-card .p-status {
+  display: inline-block;
+  font-size: 12px;
+  margin-top: 8px;
+  padding: 1px 8px;
+  border-radius: 10px;
+}
+
+.vrs-project-card .p-status.ok {
+  background: #f6ffed;
+  color: #389e0d;
+}
+
+.vrs-project-card .p-status.missing {
+  background: #fff1f0;
+  color: var(--vrs-danger);
+}
+
+.vrs-drop-zone {
+  border: 2px dashed #d9d9d9;
+  border-radius: 12px;
+  padding: 28px;
+  text-align: center;
+  color: var(--vrs-muted);
+  background: #fff;
+  transition: border-color 0.15s;
+  margin-bottom: 24px;
+}
+
+.vrs-drop-zone.dragging {
+  border-color: var(--vrs-accent);
+  background: #f0f7ff;
+}
