@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>示例项目复盘报告</title>
+<style>
+  body { font-family: "Microsoft YaHei", -apple-system, sans-serif; margin: 0; padding: 24px 32px; color: #262626; background: #fafafa; }
+  h1 { margin: 0 0 4px; }
+  .sub { color: #8c8c8c; margin-bottom: 24px; }
+  .record { background: #fff; border: 1px solid #e2e2e2; border-radius: 8px; padding: 16px; margin-bottom: 20px; break-inside: avoid; }
+  .record header { display: flex; align-items: baseline; gap: 12px; }
+  .record .index { color: #1677ff; font-weight: 700; }
+  .record h2 { margin: 0; font-size: 18px; flex: 1; }
+  .record .time { color: #1677ff; font-variant-numeric: tabular-nums; }
+  .record .meta { color: #8c8c8c; font-size: 13px; }
+  .row { display: flex; gap: 12px; margin-top: 8px; }
+  .row.stacked { flex-direction: column; }
+  .row figure { margin: 0; flex: 1; }
+  .row img { width: 100%; border-radius: 4px; }
+  figcaption { font-size: 12px; color: #8c8c8c; margin-top: 4px; }
+  .notes { margin-top: 8px; white-space: pre-wrap; }
+  @media print { body { padding: 0; background: #fff; } .record { border: none; border-bottom: 1px solid #e2e2e2; } }
+</style>
+</head>
+<body>
+<h1>示例项目复盘报告</h1>
+<p class="sub">视频：landscape.mp4 · 时长：00:00:10 · 分辨率：1280×720 · 导出时间：2026-08-05 · 记录数：2</p>
+
+<article class="record">
+  <header><span class="index">#001</span><h2>团战前站位过于靠前</h2><span class="time">00:00:02</span></header>
+  <p class="meta">分类：团战 · 重要程度：高</p>
+  <div class="row side">
+    <figure><img src="images/example-001.png" alt="原图"><figcaption>原图</figcaption></figure>
+    <figure><img src="images/example-001.png" alt="标注图"><figcaption>标注图</figcaption></figure>
+  </div>
+  <p class="notes">箭头指向危险区域，建议提前回撤。</p>
+</article>
+
+<article class="record">
+  <header><span class="index">#002</span><h2>竖版素材示例</h2><span class="time">00:00:02 – 00:00:04</span></header>
+  <p class="meta">分类：示例 · 重要程度：中</p>
+  <div class="row">
+    <figure><img src="images/example-002.png" alt="标注图"><figcaption>标注图（竖版）</figcaption></figure>
+  </div>
+  <p class="notes">竖版视频在报告中的比例保持正确。</p>
+</article>
+
+</body>
+</html>
+

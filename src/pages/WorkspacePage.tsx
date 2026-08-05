@@ -180,43 +180,6 @@ export default function WorkspacePage() {
     };
   }, [project?.id, project]);
 
-  // 选中记录：加载标注 + 跳转
-  const selectRecord = useCallback(
-    async (record: ReviewRecordDto) => {
-      setSelectedId(record.id);
-      setSelectedAnnotationId(null);
-      setTool('select');
-      dirtyRef.current = false;
-      setAnnotationsDirty(false);
-      if (record.hasScreenshot && record.sourceImagePath) {
-        try {
-          const dtos = await recordService.getAnnotations(project!.id, record.id);
-          history.reset(dtos.map(annotationFromDto));
-        } catch {
-          history.reset([]);
-        }
-      } else {
-        history.reset([]);
-      }
-      if (videoUrl) {
-        videoActions.seek(record.representativeTimeMs);
-        const el = videoElementRef.current;
-        if (el) el.pause();
-      }
-    },
-    [project, history, videoUrl],
-  );
-
-  // 保存标注（防抖自动保存）
-  useEffect(() => {
-    if (!annotationsDirty || !project || !selectedRecord) return;
-    const timer = setTimeout(() => {
-      void saveAnnotations(false);
-    }, 1000);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [annotationsDirty, history.annotations]);
-
   const saveAnnotations = useCallback(
     async (manual: boolean) => {
       if (!project || !selectedRecord) return;
@@ -252,6 +215,55 @@ export default function WorkspacePage() {
     },
     [project, selectedRecord, history.annotations, antMessage],
   );
+
+  // 选中记录：加载标注 + 跳转
+  const selectRecord = useCallback(
+    async (record: ReviewRecordDto) => {
+      if (dirtyRef.current) {
+        await saveAnnotations(false);
+      }
+      setSelectedId(record.id);
+      setSelectedAnnotationId(null);
+      setTool('select');
+      dirtyRef.current = false;
+      setAnnotationsDirty(false);
+      if (record.hasScreenshot && record.sourceImagePath) {
+        try {
+          const dtos = await recordService.getAnnotations(project!.id, record.id);
+          history.reset(dtos.map(annotationFromDto));
+        } catch {
+          history.reset([]);
+        }
+      } else {
+        history.reset([]);
+      }
+      if (videoUrl) {
+        videoActions.seek(record.representativeTimeMs);
+        const el = videoElementRef.current;
+        if (el) el.pause();
+      }
+    },
+    [project, history, videoUrl, saveAnnotations],
+  );
+
+  const deselectRecord = useCallback(async () => {
+    if (dirtyRef.current) {
+      await saveAnnotations(false);
+    }
+    setSelectedId(null);
+    setSelectedAnnotationId(null);
+    history.reset([]);
+  }, [history, saveAnnotations]);
+
+  // 保存标注（防抖自动保存）
+  useEffect(() => {
+    if (!annotationsDirty || !project || !selectedRecord) return;
+    const timer = setTimeout(() => {
+      void saveAnnotations(false);
+    }, 1000);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [annotationsDirty, history.annotations]);
 
   const handleCommit = useCallback(
     (next: EditableAnnotation[]) => {
@@ -507,8 +519,13 @@ export default function WorkspacePage() {
       if (t !== 'select') setSelectedAnnotationId(null);
     },
     onEscape: () => {
-      if (tool !== 'select') setTool('select');
-      else setSelectedAnnotationId(null);
+      if (tool !== 'select') {
+        setTool('select');
+      } else if (selectedAnnotationId) {
+        setSelectedAnnotationId(null);
+      } else if (selectedRecord) {
+        void deselectRecord();
+      }
     },
     onSave: () => void saveAnnotations(true),
   });
@@ -726,19 +743,28 @@ export default function WorkspacePage() {
         <div className="vrs-grow" style={{ display: 'flex', flexDirection: 'column' }}>
           <div className="vrs-grow" style={{ position: 'relative' }}>
             {editingScreenshot ? (
-              <AnnotationEditor
-                imageUrl={assetUrl(selectedRecord!.sourceImagePath!)}
-                naturalWidth={meta?.width || 1920}
-                naturalHeight={meta?.height || 1080}
-                annotations={history.annotations}
-                tool={tool}
-                activeStyle={activeStyle}
-                selectedId={selectedAnnotationId}
-                onSelect={setSelectedAnnotationId}
-                onChange={handleChange}
-                onCommit={handleCommit}
-                onHistoryCommit={handleHistoryCommit}
-              />
+              <>
+                <AnnotationEditor
+                  imageUrl={assetUrl(selectedRecord!.sourceImagePath!)}
+                  naturalWidth={meta?.width || 1920}
+                  naturalHeight={meta?.height || 1080}
+                  annotations={history.annotations}
+                  tool={tool}
+                  activeStyle={activeStyle}
+                  selectedId={selectedAnnotationId}
+                  onSelect={setSelectedAnnotationId}
+                  onChange={handleChange}
+                  onCommit={handleCommit}
+                  onHistoryCommit={handleHistoryCommit}
+                />
+                <Button
+                  size="small"
+                  style={{ position: 'absolute', top: 10, right: 10, zIndex: 30 }}
+                  onClick={() => void deselectRecord()}
+                >
+                  完成标注 · 返回视频 (Esc)
+                </Button>
+              </>
             ) : videoUrl ? (
               <div className="vrs-stage-wrap" style={{ background: '#000' }}>
                 <video

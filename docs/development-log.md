@@ -27,5 +27,7 @@
 ### 阶段 P6（进行中）
 
 - 便携项目转换已实现（复制、校验、进度、取消）。
-- 待办：定制图标、NSIS 安装包构建、人工验收清单、最终回归。
-
+- 定制图标（脚本绘制 → `tauri icon` 全套生成）。
+- NSIS 安装包构建完成：`src-tauri/target/release/bundle/nsis/Video Review Studio_0.1.0_x64-setup.exe`（约 114MB）。
+- 静默安装/卸载验证通过：安装退出码 0，应用可启动，卸载后目录清理。
+- 排障记录：GitHub 下载 NSIS/插件不稳定，通过镜像源获取并核对 SHA1（NSIS `EF7FF767...`、nsis_tauri_utils `75197FEE...`）。
