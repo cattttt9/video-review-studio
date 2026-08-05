@@ -54,19 +54,21 @@ export const videoActions = {
   seek(ms: number) {
     const el = videoElement;
     if (!el) return;
-    const duration = el.duration || 0;
-    el.currentTime = Math.min(duration, Math.max(0, ms / 1000));
+    const durationMs = Number.isFinite(el.duration) ? el.duration * 1000 : ms;
+    const targetMs = Math.min(durationMs, Math.max(0, ms));
+    useVideoStore.setState({ currentTimeMs: targetMs });
+    el.currentTime = targetMs / 1000;
   },
   skip(seconds: number) {
     const el = videoElement;
     if (!el) return;
-    el.currentTime = Math.min(el.duration || 0, Math.max(0, el.currentTime + seconds));
+    this.seek((el.currentTime + seconds) * 1000);
   },
   stepFrame(direction: -1 | 1, frameRate?: number | null) {
     const el = videoElement;
     if (!el) return;
     el.pause();
     const fps = frameRate && frameRate > 0 ? frameRate : 30;
-    el.currentTime = Math.min(el.duration || 0, Math.max(0, el.currentTime + direction / fps));
+    this.seek((el.currentTime + direction / fps) * 1000);
   },
 };

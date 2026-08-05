@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReviewRecordDto } from '../../types';
 import { formatTimeMs } from '../../utils/time';
 
@@ -28,7 +28,16 @@ function chooseTickStep(viewMs: number, width: number): number {
 export default function Timeline({ durationMs, currentTimeMs, records, onSeek }: TimelineProps) {
   const [view, setView] = useState<ViewWindow>({ start: 0, end: durationMs });
   const [dragging, setDragging] = useState(false);
+  const draggingRef = useRef(false);
   const rafRef = useRef<number | null>(null);
+  const pendingSeekRef = useRef<number | null>(null);
+
+  useEffect(
+    () => () => {
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+    },
+    [],
+  );
 
   const effectiveView = useMemo<ViewWindow>(() => {
     if (durationMs <= 0) return { start: 0, end: 1 };
@@ -75,10 +84,11 @@ export default function Timeline({ durationMs, currentTimeMs, records, onSeek }:
     [records, effectiveView],
   );
 
-  const msFromEvent = useCallback(
-    (e: { clientX: number; currentTarget: HTMLDivElement }) => {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const ratio = (e.clientX - rect.left) / rect.width;
+  const msFromPointer = useCallback(
+    (clientX: number, track: HTMLDivElement) => {
+      const rect = track.getBoundingClientRect();
+      if (rect.width <= 0) return effectiveView.start;
+      const ratio = (clientX - rect.left) / rect.width;
       const ms =
         effectiveView.start +
         ratio * (effectiveView.end - effectiveView.start);
@@ -88,35 +98,42 @@ export default function Timeline({ durationMs, currentTimeMs, records, onSeek }:
   );
 
   const seekAt = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      onSeek(msFromEvent(e));
+    (clientX: number, track: HTMLDivElement) => {
+      onSeek(msFromPointer(clientX, track));
     },
-    [onSeek, msFromEvent],
+    [onSeek, msFromPointer],
   );
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       e.currentTarget.setPointerCapture(e.pointerId);
+      draggingRef.current = true;
       setDragging(true);
-      seekAt(e);
+      seekAt(e.clientX, e.currentTarget);
     },
     [seekAt],
   );
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
-      if (!dragging) return;
+      if (!draggingRef.current) return;
+      pendingSeekRef.current = e.clientX;
       if (rafRef.current != null) return;
+      const track = e.currentTarget;
       rafRef.current = requestAnimationFrame(() => {
         rafRef.current = null;
-        seekAt(e);
+        const clientX = pendingSeekRef.current;
+        pendingSeekRef.current = null;
+        if (clientX != null) seekAt(clientX, track);
       });
     },
-    [dragging, seekAt],
+    [seekAt],
   );
 
   const handlePointerUp = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
+      const wasDragging = draggingRef.current;
+      draggingRef.current = false;
       if (e.currentTarget.hasPointerCapture(e.pointerId)) {
         e.currentTarget.releasePointerCapture(e.pointerId);
       }
@@ -125,16 +142,10 @@ export default function Timeline({ durationMs, currentTimeMs, records, onSeek }:
         cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
       }
+      pendingSeekRef.current = null;
+      if (wasDragging) seekAt(e.clientX, e.currentTarget);
     },
-    [],
-  );
-
-  const handleClick = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      if (dragging) return;
-      onSeek(msFromEvent(e));
-    },
-    [dragging, onSeek, msFromEvent],
+    [seekAt],
   );
 
   return (
@@ -149,7 +160,6 @@ export default function Timeline({ durationMs, currentTimeMs, records, onSeek }:
       <div
         className="vrs-timeline-track"
         style={{ cursor: dragging ? 'grabbing' : 'grab' }}
-        onClick={handleClick}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}

@@ -20,6 +20,14 @@ body,
   padding: 0;
 }
 
+/* Ant Design App 会额外包一层 div。若这一层没有明确高度，工作区的
+   height: 100% 会退化为内容高度，竖版视频和记录卡片便会撑高窗口。 */
+.ant-app {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', Roboto, sans-serif;
   color: var(--vrs-text);
@@ -144,6 +152,8 @@ body {
   overflow-y: auto;
   flex: 1;
   min-height: 0;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 /* 标注画布容器 */
@@ -181,9 +191,10 @@ body {
   position: absolute;
   left: 0;
   right: 0;
-  top: 18px;
-  height: 20px;
+  top: 0;
+  bottom: 0;
   cursor: pointer;
+  touch-action: none;
 }
 
 .vrs-timeline-mark {

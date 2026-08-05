@@ -98,6 +98,29 @@ export default function WorkspacePage() {
   const [submitting, setSubmitting] = useState(false);
   const history = useAnnotationHistory();
   const videoElementRef = useRef<HTMLVideoElement | null>(null);
+  const playbackFrameRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!video.playing) {
+      if (playbackFrameRef.current != null) cancelAnimationFrame(playbackFrameRef.current);
+      playbackFrameRef.current = null;
+      return;
+    }
+    const updatePlaybackHead = () => {
+      const el = videoElementRef.current;
+      if (!el || el.paused || el.ended) {
+        playbackFrameRef.current = null;
+        return;
+      }
+      useVideoStore.getState().setCurrentTimeMs(Math.round(el.currentTime * 1000));
+      playbackFrameRef.current = requestAnimationFrame(updatePlaybackHead);
+    };
+    playbackFrameRef.current = requestAnimationFrame(updatePlaybackHead);
+    return () => {
+      if (playbackFrameRef.current != null) cancelAnimationFrame(playbackFrameRef.current);
+      playbackFrameRef.current = null;
+    };
+  }, [video.playing]);
   const thumbAttempted = useRef<Set<string>>(new Set());
   const dirtyRef = useRef(false);
 
@@ -569,7 +592,7 @@ export default function WorkspacePage() {
   ];
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ height: '100%', minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       {/* 顶栏 */}
       <div
         style={{
@@ -779,6 +802,9 @@ export default function WorkspacePage() {
                   src={videoUrl}
                   style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                   onTimeUpdate={(e) =>
+                    video.setCurrentTimeMs(Math.round(e.currentTarget.currentTime * 1000))
+                  }
+                  onSeeking={(e) =>
                     video.setCurrentTimeMs(Math.round(e.currentTarget.currentTime * 1000))
                   }
                   onLoadedMetadata={(e) => {
