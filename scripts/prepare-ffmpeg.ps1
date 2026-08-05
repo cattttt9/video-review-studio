@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$FfmpegPath = '',
     [string]$FfprobePath = '',
     [string]$TargetTriple = ''
