@@ -149,11 +149,11 @@ export default function RecordFormModal({
         }}
       >
         <Form.Item name="title" label="标题" rules={[{ max: 100 }]}>
-          <Input placeholder="例如：团战前站位过于靠前" />
+          <Input placeholder="（可选）" />
         </Form.Item>
         <div style={{ display: 'flex', gap: 12 }}>
           <Form.Item name="category" label="分类" style={{ flex: 1 }}>
-            <Input placeholder="例如：团战 / 失误 / 高光" />
+            <Input placeholder="（可选）" />
           </Form.Item>
           <Form.Item name="importance" label="重要程度" style={{ width: 140 }}>
             <Select
@@ -166,7 +166,7 @@ export default function RecordFormModal({
           </Form.Item>
         </div>
         <Form.Item name="description" label="说明">
-          <Input.TextArea rows={2} placeholder="补充说明（可选）" />
+          <Input.TextArea rows={2} placeholder="（可选）" />
         </Form.Item>
         <Form.Item name="timeMode" label="记录类型">
           <Radio.Group

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Button,
   Checkbox,
@@ -80,24 +80,39 @@ export default function ExportModal({
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [resultHtmlPath, setResultHtmlPath] = useState<string | null>(null);
+  const [resultPdfPath, setResultPdfPath] = useState<string | null>(null);
+  const [resultDir, setResultDir] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(
+    () => new Set(records.map((record) => record.id)),
+  );
+  const wasOpenRef = useRef(false);
 
   useEffect(() => {
-    if (open) {
+    if (open && !wasOpenRef.current) {
       setRunning(false);
       setResultHtmlPath(null);
+      setResultPdfPath(null);
+      setResultDir(null);
+      setSelectedIds(new Set(records.map((record) => record.id)));
     }
-  }, [open]);
+    wasOpenRef.current = open;
+  }, [open, records]);
 
   const sorted = useMemo(() => {
-    const list = [...records].filter((r) => r.hasScreenshot && r.sourceImagePath);
+    const list = [...records].filter((record) => selectedIds.has(record.id));
     list.sort((a, b) => {
-      const av = sortMode === 'video_time' ? a.startTimeMs : 0;
-      const bv = sortMode === 'video_time' ? b.startTimeMs : 0;
+      const av = sortMode === 'video_time' ? a.startTimeMs : Date.parse(a.createdAt);
+      const bv = sortMode === 'video_time' ? b.startTimeMs : Date.parse(b.createdAt);
       const cmp = av - bv;
       return sortDirection === 'asc' ? cmp : -cmp;
     });
     return list;
-  }, [records, sortMode, sortDirection]);
+  }, [records, selectedIds, sortMode, sortDirection]);
+
+  const selectedScreenshotRecords = useMemo(
+    () => sorted.filter((record) => record.hasScreenshot && record.sourceImagePath),
+    [sorted],
+  );
 
   const fetchAnnotations = useCallback(
     async (recordId: string): Promise<EditableAnnotation[]> => {
@@ -148,9 +163,9 @@ export default function ExportModal({
     setRunning(true);
     try {
       const written: string[] = [];
-      for (let i = 0; i < sorted.length; i += 1) {
-        const record = sorted[i];
-        setProgress({ current: i, total: sorted.length });
+      for (let i = 0; i < selectedScreenshotRecords.length; i += 1) {
+        const record = selectedScreenshotRecords[i];
+        setProgress({ current: i, total: selectedScreenshotRecords.length });
         if (!record.sourceImagePath) continue;
         const annotations = await fetchAnnotations(record.id);
         const needAnnotated = imageMode !== 'source';
@@ -211,6 +226,9 @@ export default function ExportModal({
     setRunning(true);
     try {
       const written: string[] = [];
+      const timestamp = new Date();
+      const stamp = `${timestamp.getFullYear()}${String(timestamp.getMonth() + 1).padStart(2, '0')}${String(timestamp.getDate()).padStart(2, '0')}_${String(timestamp.getHours()).padStart(2, '0')}${String(timestamp.getMinutes()).padStart(2, '0')}${String(timestamp.getSeconds()).padStart(2, '0')}`;
+      const packageName = `${sanitizeFileName(project.name)}_复盘报告_${stamp}`;
       const items: Array<{
         record: ReviewRecordDto;
         annotated: string | null;
@@ -219,33 +237,33 @@ export default function ExportModal({
       for (let i = 0; i < sorted.length; i += 1) {
         const record = sorted[i];
         setProgress({ current: i, total: sorted.length });
-        if (!record.sourceImagePath) continue;
-        const annotations = await fetchAnnotations(record.id);
+        const hasImage = record.hasScreenshot && !!record.sourceImagePath;
+        const annotations = hasImage ? await fetchAnnotations(record.id) : [];
         const base = `image_${String(i + 1).padStart(3, '0')}`;
         let annotated: string | null = null;
         let source: string | null = null;
-        if (imageMode !== 'source') {
+        if (hasImage) {
           const canvas = await renderRecordImage(record, annotations);
           const b64 = await canvasToPngBase64(canvas);
           const name = `${base}_标注.png`;
           written.push(
             await fileService.writeProjectFile(
               project.id,
-              `images/${name}`,
+              `${packageName}/images/${name}`,
               b64,
               dir,
             ),
           );
           annotated = `./images/${name}`;
         }
-        if (imageMode !== 'annotated') {
+        if (hasImage && layout === 'comparison') {
           const canvas = await renderRecordImage(record, []);
           const b64 = await canvasToPngBase64(canvas);
           const name = `${base}_原图.png`;
           written.push(
             await fileService.writeProjectFile(
               project.id,
-              `images/${name}`,
+              `${packageName}/images/${name}`,
               b64,
               dir,
             ),
@@ -256,18 +274,19 @@ export default function ExportModal({
       }
       const html = buildReportHtml({
         projectName: project.name,
+        projectDescription: project.description,
         videoName: project.videoMeta?.fileName ?? project.sourceVideoPath,
         durationMs: project.videoMeta?.durationMs ?? 0,
         width: project.videoMeta?.width ?? null,
         height: project.videoMeta?.height ?? null,
-        exportTime: new Date().toLocaleString('zh-CN'),
+        exportTime: timestamp.toLocaleString('zh-CN'),
         items,
         layout,
         includeNotes,
       });
       const htmlPath = await fileService.writeProjectText(
         project.id,
-        'report.html',
+        `${packageName}/report.html`,
         html,
         dir,
       );
@@ -276,7 +295,19 @@ export default function ExportModal({
         return;
       }
       setResultHtmlPath(htmlPath);
-      message.success(`HTML 报告导出完成：${dir}`);
+      const packageDir = htmlPath.replace(/[\\/][^\\/]+$/, '');
+      setResultDir(packageDir);
+      const pdfName = `${sanitizeFileName(project.name)}_复盘报告.pdf`;
+      const separator = htmlPath.includes('\\') ? '\\' : '/';
+      const pdfPath = `${packageDir}${separator}${pdfName}`;
+      try {
+        const createdPdf = await fileService.createPdfFromHtml(htmlPath, pdfPath);
+        setResultPdfPath(createdPdf);
+        message.success(`A4 PDF 报告已生成：${packageName}`);
+      } catch (pdfError) {
+        setResultPdfPath(null);
+        message.warning(`HTML 报告已生成，但 PDF 生成失败：${describeError(pdfError)}`);
+      }
     } catch (err) {
       message.error(`报告导出失败：${describeError(err)}`);
     } finally {
@@ -337,18 +368,44 @@ export default function ExportModal({
         </div>
         <div>
           <div className="vrs-tiny vrs-muted" style={{ marginBottom: 4 }}>
-            报告图片布局
+            A4 报告图片形式
           </div>
           <Radio.Group
             value={layout}
             onChange={(e) => setLayout(e.target.value)}
             options={[
               { label: '仅标注图', value: 'annotated' },
-              { label: '原图与标注图并排', value: 'side' },
-              { label: '原图在上、标注图在下', value: 'stacked' },
+              { label: '原图与标注图对照', value: 'comparison' },
             ]}
             optionType="button"
           />
+        </div>
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+            <span className="vrs-tiny vrs-muted">选择报告记录（含纯文字记录）</span>
+            <Space size={6}>
+              <Button size="small" type="link" onClick={() => setSelectedIds(new Set(records.map((record) => record.id)))}>全选</Button>
+              <Button size="small" type="link" onClick={() => setSelectedIds(new Set())}>清空</Button>
+            </Space>
+          </div>
+          <div style={{ maxHeight: 160, overflowY: 'auto', padding: '6px 10px', border: '1px solid var(--vrs-border)', borderRadius: 6 }}>
+            <Space direction="vertical" size={5} style={{ width: '100%' }}>
+              {records.map((record) => (
+                <Checkbox
+                  key={record.id}
+                  checked={selectedIds.has(record.id)}
+                  onChange={(event) => setSelectedIds((current) => {
+                    const next = new Set(current);
+                    if (event.target.checked) next.add(record.id);
+                    else next.delete(record.id);
+                    return next;
+                  })}
+                >
+                  {formatTimeMs(record.representativeTimeMs)} · {record.title || '未命名记录'} {!record.hasScreenshot ? '（文字）' : ''}
+                </Checkbox>
+              ))}
+            </Space>
+          </div>
         </div>
         <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
           <Checkbox
@@ -394,7 +451,7 @@ export default function ExportModal({
             icon={<PictureOutlined />}
             loading={running}
             onClick={exportImageFiles}
-            disabled={sorted.length === 0}
+            disabled={selectedScreenshotRecords.length === 0}
           >
             导出图片（原分辨率）
           </Button>
@@ -404,20 +461,25 @@ export default function ExportModal({
             onClick={exportReport}
             disabled={sorted.length === 0}
           >
-            导出 HTML 报告
+            生成 A4 PDF 报告
           </Button>
+          {resultPdfPath && (
+            <Button icon={<GlobalOutlined />} onClick={() => fileService.openPath(resultPdfPath)}>
+              打开 PDF
+            </Button>
+          )}
           {resultHtmlPath && (
             <>
               <Button
                 icon={<GlobalOutlined />}
                 onClick={() => fileService.openPath(resultHtmlPath)}
               >
-                在浏览器打开（可打印为 PDF）
+                打开 HTML 版本
               </Button>
               <Button
                 icon={<FolderOpenOutlined />}
                 onClick={() => {
-                  if (exportDir) void fileService.revealInFolder(exportDir);
+                  if (resultDir) void fileService.revealInFolder(resultDir);
                 }}
               >
                 打开导出目录
@@ -426,10 +488,9 @@ export default function ExportModal({
           )}
         </div>
         <div className="vrs-tiny vrs-muted">
-          导出结构：report.html 与 images/ 位于同一目录，使用相对路径，整目录移动后仍可打开。
+          每次导出会创建“项目名_复盘报告_日期时间”独立文件夹，内含 PDF、HTML 备份及 images/ 资源。
         </div>
       </Space>
     </Modal>
   );
 }
-

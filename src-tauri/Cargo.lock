@@ -4256,6 +4256,7 @@ dependencies = [
  "tauri-plugin-opener",
  "tauri-plugin-shell",
  "thiserror 2.0.19",
+ "url",
  "uuid",
 ]
 

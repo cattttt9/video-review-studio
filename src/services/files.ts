@@ -36,4 +36,7 @@ export const fileService = {
   openPath(path: string) {
     return call<void>('open_path', { path });
   },
+  createPdfFromHtml(htmlPath: string, pdfPath: string) {
+    return call<string>('create_pdf_from_html', { htmlPath, pdfPath });
+  },
 };

@@ -710,6 +710,13 @@ export default function WorkspacePage() {
                 onClick={() => {
                   setTool(item.tool);
                   if (item.tool !== 'select') setSelectedAnnotationId(null);
+                  if (item.tool === 'text') {
+                    antMessage.info({
+                      content: '请在图片上双击添加并编辑文字',
+                      key: 'vrs-text-tool-hint',
+                      duration: 2,
+                    });
+                  }
                 }}
               />
             </Tooltip>

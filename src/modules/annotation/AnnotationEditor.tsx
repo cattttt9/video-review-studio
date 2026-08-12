@@ -600,7 +600,7 @@ export default function AnnotationEditor({
               y={pos.y}
               width={textW}
               height={textH}
-              text={annotation.content || '双击编辑文本'}
+              text={annotation.content}
               fontFamily={s.fontFamily}
               fontSize={Math.max(6, s.fontSize * fit.scale)}
               fontStyle={Number(s.fontWeight) >= 600 ? 'bold' : 'normal'}

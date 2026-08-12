@@ -46,6 +46,7 @@ pub fn run() {
             commands::files::path_exists,
             commands::files::reveal_in_folder,
             commands::files::open_path,
+            commands::files::create_pdf_from_html,
             commands::portable::convert_to_portable,
         ])
         .run(tauri::generate_context!())
