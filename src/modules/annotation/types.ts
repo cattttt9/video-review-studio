@@ -111,3 +111,61 @@ export function annotationToInput(annotation: EditableAnnotation): AnnotationInp
 export function createAnnotationId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
+
+function geometryBounds(geometry: NormalizedGeometry) {
+  if (geometry.kind === 'pen' && geometry.points?.length) {
+    const xs = geometry.points.map((point) => point.x);
+    const ys = geometry.points.map((point) => point.y);
+    return {
+      minX: Math.min(...xs),
+      maxX: Math.max(...xs),
+      minY: Math.min(...ys),
+      maxY: Math.max(...ys),
+    };
+  }
+
+  const x = geometry.x ?? 0;
+  const y = geometry.y ?? 0;
+  const endX = x + (geometry.width ?? 0);
+  const endY = y + (geometry.height ?? 0);
+  return {
+    minX: Math.min(x, endX),
+    maxX: Math.max(x, endX),
+    minY: Math.min(y, endY),
+    maxY: Math.max(y, endY),
+  };
+}
+
+/** Translate an annotation while keeping its complete geometry inside the image. */
+export function translateAnnotation(
+  annotation: EditableAnnotation,
+  deltaX: number,
+  deltaY: number,
+): EditableAnnotation {
+  const bounds = geometryBounds(annotation.geometry);
+  const dx = Math.max(-bounds.minX, Math.min(1 - bounds.maxX, deltaX));
+  const dy = Math.max(-bounds.minY, Math.min(1 - bounds.maxY, deltaY));
+  const geometry = annotation.geometry;
+
+  if (geometry.kind === 'pen') {
+    return {
+      ...annotation,
+      geometry: {
+        ...geometry,
+        points: (geometry.points ?? []).map((point) => ({
+          x: point.x + dx,
+          y: point.y + dy,
+        })),
+      },
+    };
+  }
+
+  return {
+    ...annotation,
+    geometry: {
+      ...geometry,
+      x: (geometry.x ?? 0) + dx,
+      y: (geometry.y ?? 0) + dy,
+    },
+  };
+}

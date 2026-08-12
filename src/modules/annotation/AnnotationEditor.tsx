@@ -16,6 +16,7 @@ import { useResizeObserver } from '../../hooks/useResizeObserver';
 import { loadImage } from './canvasRenderer';
 import {
   createAnnotationId,
+  translateAnnotation,
   type AnnotationStyle,
   type EditableAnnotation,
   type NormalizedPoint,
@@ -34,6 +35,7 @@ export interface AnnotationEditorProps {
   onChange: (next: EditableAnnotation[]) => void;
   onCommit: (next: EditableAnnotation[]) => void;
   onHistoryCommit: (next: EditableAnnotation[]) => void;
+  onFinishCreate: (id: string | null) => void;
 }
 
 interface FitRect {
@@ -75,6 +77,7 @@ export default function AnnotationEditor({
   onChange,
   onCommit,
   onHistoryCommit,
+  onFinishCreate,
 }: AnnotationEditorProps) {
   const { ref, size } = useResizeObserver<HTMLDivElement>();
   const stageRef = useRef<Konva.Stage | null>(null);
@@ -147,7 +150,13 @@ export default function AnnotationEditor({
     const tr = transformerRef.current;
     const stage = stageRef.current;
     if (!tr || !stage) return;
-    if (!selected || tool !== 'select' || selected.type === 'line' || selected.type === 'arrow') {
+    if (
+      !selected ||
+      tool !== 'select' ||
+      selected.type === 'pen' ||
+      selected.type === 'line' ||
+      selected.type === 'arrow'
+    ) {
       tr.nodes([]);
       tr.getLayer()?.batchDraw();
       return;
@@ -195,7 +204,8 @@ export default function AnnotationEditor({
     onHistoryCommit(next);
     editingTextIdRef.current = null;
     setEditingTextId(null);
-  }, [annotations, textInput, onChange, onHistoryCommit]);
+    onFinishCreate(next.some((annotation) => annotation.id === id) ? id : null);
+  }, [annotations, textInput, onChange, onHistoryCommit, onFinishCreate]);
 
   const cancelTextEdit = useCallback(() => {
     const id = editingTextIdRef.current;
@@ -213,7 +223,8 @@ export default function AnnotationEditor({
     onHistoryCommit(next);
     editingTextIdRef.current = null;
     setEditingTextId(null);
-  }, [annotations, onChange, onHistoryCommit]);
+    onFinishCreate(next.some((annotation) => annotation.id === id) ? id : null);
+  }, [annotations, onChange, onHistoryCommit, onFinishCreate]);
 
   // 切换工具时自动保存当前文本编辑
   const commitRef = useRef(commitTextEdit);
@@ -232,7 +243,13 @@ export default function AnnotationEditor({
         commitTextEdit();
         return;
       }
-      if (!fit || tool === 'select') return;
+      if (!fit) return;
+      if (tool === 'select') {
+        // 标注节点会在自己的 onMouseDown 中阻止冒泡；事件落到 Stage 本身
+        // 说明用户点击了图片或留黑区域，应取消选中并隐藏变换边框。
+        if (e.target === e.target.getStage()) onSelect(null);
+        return;
+      }
       const pos = e.target.getStage()?.getPointerPosition();
       if (!pos) return;
       const p = toNormalized(pos);
@@ -273,6 +290,7 @@ export default function AnnotationEditor({
       activeStyle,
       annotations,
       onCommit,
+      onSelect,
       toNormalized,
       commitTextEdit,
       startEditingText,
@@ -312,8 +330,9 @@ export default function AnnotationEditor({
     if (draft) {
       onCommit([...annotations, draft]);
       setDraft(null);
+      onFinishCreate(draft.id);
     }
-  }, [draft, annotations, onCommit]);
+  }, [draft, annotations, onCommit, onFinishCreate]);
 
   const createTextAt = useCallback(
     (p: NormalizedPoint, initialText = '') => {
@@ -381,6 +400,20 @@ export default function AnnotationEditor({
     [fit, annotations],
   );
 
+  const handleMoveEnd = useCallback(
+    (annotation: EditableAnnotation, node: Konva.Node, origin: { x: number; y: number }) => {
+      if (!fit) return;
+      const deltaX = (node.x() - origin.x) / fit.dw;
+      const deltaY = (node.y() - origin.y) / fit.dh;
+      node.position(origin);
+      const next = annotations.map((item) =>
+        item.id === annotation.id ? translateAnnotation(item, deltaX, deltaY) : item,
+      );
+      onHistoryCommit(next);
+    },
+    [fit, annotations, onHistoryCommit],
+  );
+
   const editingText = useMemo(
     () => sorted.find((a) => a.id === editingTextId) ?? null,
     [sorted, editingTextId],
@@ -427,6 +460,8 @@ export default function AnnotationEditor({
               lineCap="round"
               lineJoin="round"
               listening={tool === 'select'}
+              draggable={tool === 'select'}
+              onDragEnd={(e) => handleMoveEnd(annotation, e.target, { x: 0, y: 0 })}
             />
           );
         }
@@ -446,6 +481,8 @@ export default function AnnotationEditor({
                 pointerLength={Math.max(10, s.strokeWidth * fit.scale * 2)}
                 pointerWidth={Math.max(8, s.strokeWidth * fit.scale * 1.6)}
                 listening={tool === 'select'}
+                draggable={tool === 'select'}
+                onDragEnd={(e) => handleMoveEnd(annotation, e.target, { x: 0, y: 0 })}
               />
               {selected?.id === annotation.id && tool === 'select' && (
                 <>
@@ -610,6 +647,7 @@ export default function AnnotationEditor({
       onSelect,
       updateAnnotation,
       handleTransformEnd,
+      handleMoveEnd,
       onHistoryCommit,
       annotations,
       onChange,
@@ -683,8 +721,11 @@ export default function AnnotationEditor({
             color: editingRect.style.textColor,
             background:
               editingRect.style.backgroundOpacity > 0
-                ? editingRect.style.background
-                : 'rgba(255,255,255,0.85)',
+                ? withAlpha(
+                    editingRect.style.background,
+                    editingRect.style.backgroundOpacity,
+                  )
+                : 'transparent',
             lineHeight: String(editingRect.style.lineHeight),
             resize: 'both',
             border: '2px solid #1677ff',

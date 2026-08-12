@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Checkbox, Form, Input, Modal, Radio, Select, Switch } from 'antd';
 import type { ReviewRecordDto, TimeMode } from '../../types';
 import { formatTimeMs, parseTimeToMs } from '../../utils/time';
+import { getCreateActionCopy } from './recordFormCopy';
 
 export interface RecordFormValues {
   title: string;
@@ -43,6 +44,7 @@ export default function RecordFormModal({
   const [form] = Form.useForm<RecordFormValues>();
   const [timeMode, setTimeMode] = useState<TimeMode>('point');
   const watchHasScreenshot = Form.useWatch('hasScreenshot', form);
+  const createActionCopy = getCreateActionCopy(!!watchHasScreenshot);
 
   const initialValues = useMemo<RecordFormValues>(() => {
     if (mode === 'edit' && record) {
@@ -130,7 +132,7 @@ export default function RecordFormModal({
     <Modal
       open={open}
       title={mode === 'create' ? '新建复盘记录' : '编辑复盘记录'}
-      okText={mode === 'create' ? '创建' : '保存'}
+      okText={mode === 'create' ? createActionCopy.okText : '保存'}
       cancelText="取消"
       onOk={handleOk}
       onCancel={onCancel}
@@ -200,7 +202,11 @@ export default function RecordFormModal({
         <Form.Item
           name="hasScreenshot"
           valuePropName="checked"
-          extra={!canScreenshot ? '视频不可用，无法截图' : undefined}
+          extra={
+            !canScreenshot
+              ? '视频不可用，无法截图'
+              : createActionCopy.hint
+          }
         >
           <Checkbox disabled={!canScreenshot} checked={watchHasScreenshot}>
             保存代表截图

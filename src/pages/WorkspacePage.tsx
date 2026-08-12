@@ -143,7 +143,8 @@ export default function WorkspacePage() {
     }
   }, [project, location.state, navigate, setProject, antMessage]);
 
-  // 加载记录
+  // 仅在切换项目时加载记录。项目统计刷新也会替换 project 对象，若监听整个
+  // 对象，会在新建记录自动选中后再次清空 selectedId，迫使用户去右栏重选。
   useEffect(() => {
     if (!project) return;
     recordService
@@ -155,7 +156,7 @@ export default function WorkspacePage() {
       })
       .catch((err) => antMessage.error(`加载记录失败：${describeError(err)}`));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project?.id, project]);
+  }, [project?.id]);
 
   // 解析可播放视频
   useEffect(() => {
@@ -410,7 +411,13 @@ export default function WorkspacePage() {
           await generateThumbnail(project.id, updated, history.annotations);
         }
       }
-      antMessage.success(recordForm.mode === 'create' ? '记录已创建' : '记录已更新');
+      antMessage.success(
+        recordForm.mode === 'create'
+          ? values.hasScreenshot
+            ? '记录已创建，已进入标注'
+            : '记录已创建'
+          : '记录已更新',
+      );
       projectService
         .refreshProject(project.id)
         .then(setProject)
@@ -783,6 +790,10 @@ export default function WorkspacePage() {
                   onChange={handleChange}
                   onCommit={handleCommit}
                   onHistoryCommit={handleHistoryCommit}
+                  onFinishCreate={(id) => {
+                    setSelectedAnnotationId(id);
+                    setTool('select');
+                  }}
                 />
                 <Button
                   size="small"
