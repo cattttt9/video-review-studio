@@ -11,7 +11,7 @@ use crate::state::{AppState, CancelHandle};
 use rusqlite::{params, OptionalExtension};
 use std::path::Path;
 use std::sync::atomic::Ordering;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 
 fn mime_for(path: &Path) -> &'static str {
     match path
@@ -43,6 +43,7 @@ pub async fn bind_video(
     if !Path::new(&path).exists() {
         return Err(AppError::Video(format!("视频文件不存在: {path}")));
     }
+    app.asset_protocol_scope().allow_file(&path)?;
     let meta = ffmpeg::probe(&app, &path).await?;
     with_project(&state, &project_id, |handle| {
         let conn = handle
@@ -162,6 +163,7 @@ pub async fn force_bind_video(
     if !Path::new(&new_path).exists() {
         return Err(AppError::Video(format!("视频文件不存在: {new_path}")));
     }
+    app.asset_protocol_scope().allow_file(&new_path)?;
     let meta = ffmpeg::probe(&app, &new_path).await?;
     with_project(&state, &project_id, |handle| {
         let conn = handle
@@ -250,10 +252,7 @@ pub async fn ensure_proxy(
 }
 
 #[tauri::command]
-pub fn cancel_operation(
-    state: State<'_, AppState>,
-    project_id: String,
-) -> Result<(), AppError> {
+pub fn cancel_operation(state: State<'_, AppState>, project_id: String) -> Result<(), AppError> {
     if let Some(cancel) = state
         .cancels
         .lock()
@@ -324,10 +323,7 @@ pub fn resolve_playable_video(
 }
 
 #[tauri::command]
-pub async fn probe_external_file(
-    app: AppHandle,
-    path: String,
-) -> Result<VideoMetaDto, AppError> {
+pub async fn probe_external_file(app: AppHandle, path: String) -> Result<VideoMetaDto, AppError> {
     if !Path::new(&path).exists() {
         return Err(AppError::Video(format!("视频文件不存在: {path}")));
     }

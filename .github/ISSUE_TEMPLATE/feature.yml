@@ -1,0 +1,26 @@
+name: 功能建议
+description: 描述希望改善的复盘场景，而不只是一个按钮
+title: '[Feature] '
+labels: ['enhancement', 'needs-triage']
+body:
+  - type: textarea
+    attributes:
+      label: 使用场景和当前困难
+      description: 谁在什么情况下遇到了什么问题？
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: 期望的工作流程
+      description: 从开始到完成，用户理想中会怎样操作？
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: 可选方案或参考
+  - type: checkboxes
+    attributes:
+      label: 产品原则
+      options:
+        - label: 该建议可以在纯本地、无账号的前提下工作
+        - label: 该建议不会要求修改用户原始视频

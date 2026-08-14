@@ -2,9 +2,7 @@ use crate::commands::{get_arc, with_project};
 use crate::commands::{insert_video_meta, locked, now};
 use crate::database;
 use crate::error::AppError;
-use crate::models::{
-    ProjectDto, ProjectInfo, RecentProjectEntry, VideoMetaDto,
-};
+use crate::models::{ProjectDto, ProjectInfo, RecentProjectEntry, VideoMetaDto};
 use crate::services::project as project_service;
 use crate::services::project::{create_layout, resolve_video_path};
 use crate::state::{AppState, ProjectHandle};
@@ -118,6 +116,20 @@ pub(crate) fn build_dto(handle: &ProjectHandle) -> Result<ProjectDto, AppError> 
     })
 }
 
+fn allow_project_assets(
+    app: &AppHandle,
+    project_dir: &Path,
+    info: &ProjectInfo,
+) -> Result<(), AppError> {
+    app.asset_protocol_scope()
+        .allow_directory(project_dir, true)?;
+    let video = resolve_video_path(info, project_dir);
+    if video.is_file() {
+        app.asset_protocol_scope().allow_file(video)?;
+    }
+    Ok(())
+}
+
 fn sync_info_from_db(handle: &mut ProjectHandle) -> Result<(), AppError> {
     let conn = handle
         .conn
@@ -228,6 +240,7 @@ pub async fn create_project(
     }
 
     project_service::upsert_recent(&app, &dir, &name)?;
+    allow_project_assets(&app, &dir, &handle.info)?;
     let arc = std::sync::Arc::new(Mutex::new(handle));
     state
         .projects
@@ -268,6 +281,7 @@ pub fn open_project(
     )?;
     project_service::save_info(&dir, &info)?;
     project_service::upsert_recent(&app, &dir, &info.name)?;
+    allow_project_assets(&app, &dir, &info)?;
 
     let handle = ProjectHandle {
         conn: Mutex::new(conn),

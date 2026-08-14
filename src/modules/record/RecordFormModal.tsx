@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import { Checkbox, Form, Input, Modal, Radio, Select, Switch } from 'antd';
 import type { ReviewRecordDto, TimeMode } from '../../types';
 import { formatTimeMs, parseTimeToMs } from '../../utils/time';
@@ -30,6 +31,24 @@ export interface RecordFormModalProps {
   onSubmit: (values: RecordFormValues) => void;
 }
 
+interface ModalOffset {
+  x: number;
+  y: number;
+}
+
+interface ModalDragSession {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  origin: ModalOffset;
+  minDeltaX: number;
+  maxDeltaX: number;
+  minDeltaY: number;
+  maxDeltaY: number;
+}
+
+const MODAL_VIEWPORT_MARGIN = 16;
+
 export default function RecordFormModal({
   open,
   mode,
@@ -43,6 +62,9 @@ export default function RecordFormModal({
 }: RecordFormModalProps) {
   const [form] = Form.useForm<RecordFormValues>();
   const [timeMode, setTimeMode] = useState<TimeMode>('point');
+  const [modalOffset, setModalOffset] = useState<ModalOffset>({ x: 0, y: 0 });
+  const modalSurfaceRef = useRef<HTMLDivElement | null>(null);
+  const dragSessionRef = useRef<ModalDragSession | null>(null);
   const watchHasScreenshot = Form.useWatch('hasScreenshot', form);
   const createActionCopy = getCreateActionCopy(!!watchHasScreenshot);
 
@@ -81,8 +103,53 @@ export default function RecordFormModal({
     if (open) {
       form.setFieldsValue(initialValues);
       setTimeMode(initialValues.timeMode);
+      setModalOffset({ x: 0, y: 0 });
+      dragSessionRef.current = null;
     }
   }, [open, initialValues, form]);
+
+  const handleDragStart = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    const rect = modalSurfaceRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragSessionRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      origin: modalOffset,
+      minDeltaX: MODAL_VIEWPORT_MARGIN - rect.left,
+      maxDeltaX: window.innerWidth - MODAL_VIEWPORT_MARGIN - rect.right,
+      minDeltaY: MODAL_VIEWPORT_MARGIN - rect.top,
+      maxDeltaY: window.innerHeight - MODAL_VIEWPORT_MARGIN - rect.bottom,
+    };
+  };
+
+  const handleDragMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const session = dragSessionRef.current;
+    if (!session || session.pointerId !== event.pointerId) return;
+
+    const deltaX = Math.min(
+      session.maxDeltaX,
+      Math.max(session.minDeltaX, event.clientX - session.startX),
+    );
+    const deltaY = Math.min(
+      session.maxDeltaY,
+      Math.max(session.minDeltaY, event.clientY - session.startY),
+    );
+    setModalOffset({ x: session.origin.x + deltaX, y: session.origin.y + deltaY });
+  };
+
+  const handleDragEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const session = dragSessionRef.current;
+    if (!session || session.pointerId !== event.pointerId) return;
+    dragSessionRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
 
   const syncPointTime = (key: 'startTime' | 'endTime' | 'representativeTime', value: string) => {
     if (timeMode !== 'point') return;
@@ -131,7 +198,19 @@ export default function RecordFormModal({
   return (
     <Modal
       open={open}
-      title={mode === 'create' ? '新建复盘记录' : '编辑复盘记录'}
+      title={
+        <div
+          className="vrs-record-modal-drag-handle"
+          onPointerDown={handleDragStart}
+          onPointerMove={handleDragMove}
+          onPointerUp={handleDragEnd}
+          onPointerCancel={handleDragEnd}
+          title="按住标题栏拖动"
+        >
+          <span>{mode === 'create' ? '新建复盘记录' : '编辑复盘记录'}</span>
+          <span className="vrs-record-modal-drag-hint">可拖动 · 移开弹窗查看视频</span>
+        </div>
+      }
       okText={mode === 'create' ? createActionCopy.okText : '保存'}
       cancelText="取消"
       onOk={handleOk}
@@ -139,6 +218,15 @@ export default function RecordFormModal({
       confirmLoading={submitting}
       width={560}
       destroyOnHidden
+      modalRender={(modal) => (
+        <div
+          ref={modalSurfaceRef}
+          className="vrs-record-modal-drag-surface"
+          style={{ transform: `translate3d(${modalOffset.x}px, ${modalOffset.y}px, 0)` }}
+        >
+          {modal}
+        </div>
+      )}
     >
       <Form
         form={form}

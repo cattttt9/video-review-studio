@@ -173,4 +173,3 @@ pub fn trash_dir(app: &AppHandle) -> Result<PathBuf, AppError> {
     fs::create_dir_all(&dir)?;
     Ok(dir)
 }
-

@@ -153,6 +153,7 @@ export default function AnnotationEditor({
     if (
       !selected ||
       tool !== 'select' ||
+      selected.id === editingTextId ||
       selected.type === 'pen' ||
       selected.type === 'line' ||
       selected.type === 'arrow'
@@ -168,7 +169,7 @@ export default function AnnotationEditor({
     } else {
       tr.nodes([]);
     }
-  }, [selected, tool]);
+  }, [selected, tool, editingTextId]);
 
   const updateAnnotation = useCallback(
     (id: string, updater: (a: EditableAnnotation) => EditableAnnotation) => {
@@ -727,9 +728,10 @@ export default function AnnotationEditor({
                   )
                 : 'transparent',
             lineHeight: String(editingRect.style.lineHeight),
-            resize: 'both',
+            resize: 'none',
             border: '2px solid #1677ff',
             outline: 'none',
+            boxShadow: 'none',
             zIndex: 10,
             boxSizing: 'border-box',
           }}

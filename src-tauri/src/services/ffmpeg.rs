@@ -7,8 +7,8 @@ use tauri::{AppHandle, Emitter};
 use tauri_plugin_shell::process::CommandEvent;
 use tauri_plugin_shell::ShellExt;
 
-use super::hash::head_tail_sha256;
 use super::fs_util::file_size;
+use super::hash::head_tail_sha256;
 use crate::database::now_iso;
 use crate::models::ProgressPayload;
 
@@ -186,35 +186,36 @@ pub async fn ensure_proxy(
     let src = source.to_string_lossy().to_string();
     let dst = out.to_string_lossy().to_string();
     let cmd = app.shell().sidecar("ffmpeg")?;
-    let (mut rx, child) = cmd.args([
-        "-hide_banner",
-        "-y",
-        "-i",
-        &src,
-        "-map",
-        "0:v:0",
-        "-map",
-        "0:a:0?",
-        "-c:v",
-        "libx264",
-        "-preset",
-        "veryfast",
-        "-crf",
-        "23",
-        "-vf",
-        "scale='min(1920,iw)':'min(1080,ih)':force_original_aspect_ratio=decrease",
-        "-c:a",
-        "aac",
-        "-b:a",
-        "128k",
-        "-movflags",
-        "+faststart",
-        "-progress",
-        "pipe:1",
-        "-nostats",
-        &dst,
-    ])
-    .spawn()?;
+    let (mut rx, child) = cmd
+        .args([
+            "-hide_banner",
+            "-y",
+            "-i",
+            &src,
+            "-map",
+            "0:v:0",
+            "-map",
+            "0:a:0?",
+            "-c:v",
+            "libx264",
+            "-preset",
+            "veryfast",
+            "-crf",
+            "23",
+            "-vf",
+            "scale='min(1920,iw)':'min(1080,ih)':force_original_aspect_ratio=decrease",
+            "-c:a",
+            "aac",
+            "-b:a",
+            "128k",
+            "-movflags",
+            "+faststart",
+            "-progress",
+            "pipe:1",
+            "-nostats",
+            &dst,
+        ])
+        .spawn()?;
     if let Ok(mut holder) = child_holder.lock() {
         *holder = Some(child);
     }
@@ -296,7 +297,11 @@ pub async fn ensure_proxy(
     if !out.exists() || file_size(out).unwrap_or(0) == 0 {
         return Err(AppError::Video(format!(
             "代理视频生成失败（{}）",
-            if finished { "输出为空" } else { "进程提前退出" }
+            if finished {
+                "输出为空"
+            } else {
+                "进程提前退出"
+            }
         )));
     }
     Ok(true)
@@ -308,7 +313,10 @@ mod tests {
 
     #[test]
     fn parses_frame_rates() {
-        assert_eq!(parse_frame_rate(Some("30000/1001")), Some(29.97002997002997));
+        assert_eq!(
+            parse_frame_rate(Some("30000/1001")),
+            Some(29.97002997002997)
+        );
         assert_eq!(parse_frame_rate(Some("60/1")), Some(60.0));
         assert_eq!(parse_frame_rate(Some("25")), Some(25.0));
         assert_eq!(parse_frame_rate(Some("0/0")), None);

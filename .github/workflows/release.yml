@@ -1,0 +1,108 @@
+name: Windows draft release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+env:
+  FFMPEG_VERSION: '8.1'
+  FFMPEG_ARCHIVE: 'ffmpeg-8.1-essentials_build.zip'
+  FFMPEG_SHA256: '8748283d821613d930b0e7be685aaa9df4ca6f0ad4d0c42fd02622b3623463c6'
+
+jobs:
+  release-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Verify tag and application version
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          if ($env:GITHUB_REF_NAME -ne "v$version") {
+            throw "Tag $env:GITHUB_REF_NAME does not match package version v$version"
+          }
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+
+      - name: Download pinned FFmpeg sidecars
+        shell: pwsh
+        run: |
+          $url = "https://github.com/GyanD/codexffmpeg/releases/download/$env:FFMPEG_VERSION/$env:FFMPEG_ARCHIVE"
+          Invoke-WebRequest -Uri $url -OutFile $env:FFMPEG_ARCHIVE
+          $actual = (Get-FileHash $env:FFMPEG_ARCHIVE -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $env:FFMPEG_SHA256) { throw "FFmpeg SHA-256 mismatch: $actual" }
+          Expand-Archive -LiteralPath $env:FFMPEG_ARCHIVE -DestinationPath ffmpeg-package
+          $ffmpeg = Get-ChildItem ffmpeg-package -Recurse -Filter ffmpeg.exe | Select-Object -First 1
+          $ffprobe = Get-ChildItem ffmpeg-package -Recurse -Filter ffprobe.exe | Select-Object -First 1
+          if (-not $ffmpeg -or -not $ffprobe) { throw "FFmpeg archive is incomplete" }
+          New-Item -ItemType Directory -Force src-tauri/binaries | Out-Null
+          Copy-Item $ffmpeg.FullName src-tauri/binaries/ffmpeg-x86_64-pc-windows-msvc.exe
+          Copy-Item $ffprobe.FullName src-tauri/binaries/ffprobe-x86_64-pc-windows-msvc.exe
+
+      - name: Capture FFmpeg notices and corresponding source
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force release-licenses | Out-Null
+          Copy-Item THIRD_PARTY_NOTICES.md release-licenses/
+          Copy-Item LICENSE release-licenses/LICENSE-Video-Review-Studio.txt
+          $license = Get-ChildItem ffmpeg-package -Recurse -Filter LICENSE | Select-Object -First 1
+          $readme = Get-ChildItem ffmpeg-package -Recurse -Filter README.txt | Select-Object -First 1
+          if (-not $license -or -not $readme) { throw "FFmpeg notices are missing" }
+          Copy-Item $license.FullName release-licenses/LICENSE-FFmpeg.txt
+          Copy-Item $readme.FullName release-licenses/README-FFmpeg-build.txt
+          Invoke-WebRequest -Uri "https://github.com/FFmpeg/FFmpeg/archive/9047fa1b084f76b1b4d065af2d743df1b40dfb56.zip" -OutFile "release-licenses/ffmpeg-8.1-source-9047fa1b084f76b1b4d065af2d743df1b40dfb56.zip"
+
+      - name: Build Windows installer
+        run: npm run tauri build
+
+      - name: Generate checksums
+        shell: pwsh
+        run: |
+          $out = "src-tauri/target/release/release-assets"
+          New-Item -ItemType Directory -Force $out | Out-Null
+          Copy-Item src-tauri/target/release/bundle/nsis/*-setup.exe $out/
+          Copy-Item release-licenses/* $out/
+          Get-ChildItem $out -File | Where-Object Name -ne SHA256SUMS.txt | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $($_.Name)"
+          } | Set-Content "$out/SHA256SUMS.txt" -Encoding utf8
+
+      - name: Attest Windows installer
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: src-tauri/target/release/release-assets/*-setup.exe
+
+      - name: Create draft GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          body: |
+            Windows x64 build of Video Review Studio.
+
+            Before publishing this draft, verify the installer on a clean Windows machine and review THIRD_PARTY_NOTICES.md. The installer is currently unsigned, so Windows may show a SmartScreen warning.
+
+            This release bundles Gyan.dev FFmpeg ${{ env.FFMPEG_VERSION }} essentials build as separate GPLv3 command-line programs. The matching source archive, build README, licenses and SHA-256 checksums are attached.
+          files: src-tauri/target/release/release-assets/*

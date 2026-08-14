@@ -1,9 +1,7 @@
 use crate::commands::project::build_dto;
 use crate::commands::{get_arc, locked, now, with_project};
 use crate::error::AppError;
-use crate::models::{
-    AnnotationDto, AnnotationInput, NewRecordInput, ProjectDto, ReviewRecordDto,
-};
+use crate::models::{AnnotationDto, AnnotationInput, NewRecordInput, ProjectDto, ReviewRecordDto};
 use crate::services::project::ProjectLayout;
 use crate::state::AppState;
 use base64::Engine;
@@ -67,7 +65,9 @@ fn validate_record(input: &NewRecordInput) -> Result<(), AppError> {
         if input.end_time_ms != input.start_time_ms
             || input.representative_time_ms != input.start_time_ms
         {
-            return Err(AppError::Invalid("时间点记录的开始、结束与代表时间必须一致".into()));
+            return Err(AppError::Invalid(
+                "时间点记录的开始、结束与代表时间必须一致".into(),
+            ));
         }
     } else if input.start_time_ms > input.representative_time_ms
         || input.representative_time_ms > input.end_time_ms
@@ -460,10 +460,7 @@ pub fn save_thumbnail(
     data_base64: String,
 ) -> Result<String, AppError> {
     with_project(&state, &project_id, |handle| {
-        let data = data_base64
-            .split(',')
-            .next_back()
-            .unwrap_or(&data_base64);
+        let data = data_base64.split(',').next_back().unwrap_or(&data_base64);
         let bytes = base64::engine::general_purpose::STANDARD
             .decode(data)
             .map_err(|e| AppError::Invalid(format!("缩略图数据解码失败: {e}")))?;

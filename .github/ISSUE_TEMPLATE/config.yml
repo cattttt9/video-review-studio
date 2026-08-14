@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: GitHub 私密安全报告说明
+    url: https://docs.github.com/code-security/security-advisories/working-with-repository-security-advisories/privately-reporting-a-security-vulnerability
+    about: 安全漏洞请勿创建公开 Issue，请按文档从仓库 Security 页面私密提交。

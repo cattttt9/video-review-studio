@@ -248,6 +248,32 @@ body {
   cursor: grabbing;
 }
 
+/* 新建/编辑记录弹窗：标题栏可拖动，便于移开后对照视频填写。 */
+.vrs-record-modal-drag-surface {
+  will-change: transform;
+}
+
+.vrs-record-modal-drag-handle {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  padding: 3px 0;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.vrs-record-modal-drag-handle:active {
+  cursor: grabbing;
+}
+
+.vrs-record-modal-drag-hint {
+  color: var(--vrs-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
 /* 首页 */
 .vrs-home {
   height: 100%;

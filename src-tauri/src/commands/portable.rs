@@ -21,9 +21,7 @@ pub async fn convert_to_portable(
     let (src, dir, stored_head, stored_tail) = with_project(&state, &project_id, |handle| {
         let src = crate::services::project::resolve_video_path(&handle.info, &handle.dir);
         if !src.exists() {
-            return Err(AppError::Video(
-                "原视频不存在，无法转换为便携项目".into(),
-            ));
+            return Err(AppError::Video("原视频不存在，无法转换为便携项目".into()));
         }
         let conn = handle
             .conn
@@ -33,7 +31,12 @@ pub async fn convert_to_portable(
             .query_row(
                 "SELECT hash_head, hash_tail FROM video_meta WHERE project_id = ?1",
                 params![project_id],
-                |row| Ok((row.get::<_, Option<String>>(0)?, row.get::<_, Option<String>>(1)?)),
+                |row| {
+                    Ok((
+                        row.get::<_, Option<String>>(0)?,
+                        row.get::<_, Option<String>>(1)?,
+                    ))
+                },
             )
             .optional()?
             .unwrap_or((None, None));
@@ -153,7 +156,10 @@ pub async fn convert_to_portable(
     }
 
     std::fs::rename(&temp_path, &final_path)?;
-    let rel = format!("media/{}", final_path.file_name().unwrap().to_string_lossy());
+    let rel = format!(
+        "media/{}",
+        final_path.file_name().unwrap().to_string_lossy()
+    );
 
     with_project(&state, &project_id, |handle| {
         let conn = handle

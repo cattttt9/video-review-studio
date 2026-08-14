@@ -31,10 +31,7 @@ pub fn write_project_file(
         if let Some(parent) = target.parent() {
             fs::create_dir_all(parent)?;
         }
-        let data = data_base64
-            .split(',')
-            .next_back()
-            .unwrap_or(&data_base64);
+        let data = data_base64.split(',').next_back().unwrap_or(&data_base64);
         let bytes = base64::engine::general_purpose::STANDARD
             .decode(data)
             .map_err(|e| AppError::Invalid(format!("导出数据解码失败: {e}")))?;
@@ -121,11 +118,7 @@ fn find_edge() -> Option<PathBuf> {
 fn cleanup_pdf_profiles(temp_root: &Path) {
     if let Ok(entries) = fs::read_dir(temp_root) {
         for entry in entries.flatten() {
-            if entry
-                .file_name()
-                .to_string_lossy()
-                .starts_with("vrs-pdf-")
-                && entry.path().is_dir()
+            if entry.file_name().to_string_lossy().starts_with("vrs-pdf-") && entry.path().is_dir()
             {
                 let _ = fs::remove_dir_all(entry.path());
             }
@@ -156,15 +149,20 @@ pub fn create_pdf_from_html(html_path: String, pdf_path: String) -> Result<Strin
     if let Some(parent) = pdf.parent() {
         fs::create_dir_all(parent)?;
     }
-    let html_parent = html.parent().ok_or_else(|| AppError::Invalid("HTML 路径无效".into()))?;
+    let html_parent = html
+        .parent()
+        .ok_or_else(|| AppError::Invalid("HTML 路径无效".into()))?;
     let html_contains_images = fs::read_to_string(&html)
         .map(|content| content.contains("<img"))
         .unwrap_or(false);
     let pdf_parent = fs::canonicalize(
-        pdf.parent().ok_or_else(|| AppError::Invalid("PDF 路径无效".into()))?,
+        pdf.parent()
+            .ok_or_else(|| AppError::Invalid("PDF 路径无效".into()))?,
     )?;
     if html_parent != pdf_parent {
-        return Err(AppError::Invalid("PDF 必须与 HTML 报告保存在同一目录".into()));
+        return Err(AppError::Invalid(
+            "PDF 必须与 HTML 报告保存在同一目录".into(),
+        ));
     }
 
     let edge = find_edge().ok_or_else(|| {
@@ -194,15 +192,26 @@ pub fn create_pdf_from_html(html_path: String, pdf_path: String) -> Result<Strin
         .arg(format!("--print-to-pdf={}", pdf.to_string_lossy()))
         .arg(&html_url)
         .status();
-    let status = status.map_err(|error| AppError::Other(format!("无法启动 Edge 生成 PDF: {error}")))?;
+    let status =
+        status.map_err(|error| AppError::Other(format!("无法启动 Edge 生成 PDF: {error}")))?;
     if !status.success() {
-        return Err(AppError::Other("Edge 未能生成 PDF，已保留 HTML 报告".into()));
+        return Err(AppError::Other(
+            "Edge 未能生成 PDF，已保留 HTML 报告".into(),
+        ));
     }
     // Windows 上 Edge 的启动进程可能先退出，PDF 由后继进程稍后落盘。
     let deadline = Instant::now() + Duration::from_secs(15);
-    let minimum_size = if html_contains_images { 50 * 1024 } else { 4 * 1024 };
+    let minimum_size = if html_contains_images {
+        50 * 1024
+    } else {
+        4 * 1024
+    };
     while Instant::now() < deadline {
-        if pdf.metadata().map(|meta| meta.len() >= minimum_size).unwrap_or(false) {
+        if pdf
+            .metadata()
+            .map(|meta| meta.len() >= minimum_size)
+            .unwrap_or(false)
+        {
             break;
         }
         thread::sleep(Duration::from_millis(100));

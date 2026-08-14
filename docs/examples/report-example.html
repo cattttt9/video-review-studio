@@ -1,51 +1,72 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>示例项目复盘报告</title>
-<style>
-  body { font-family: "Microsoft YaHei", -apple-system, sans-serif; margin: 0; padding: 24px 32px; color: #262626; background: #fafafa; }
-  h1 { margin: 0 0 4px; }
-  .sub { color: #8c8c8c; margin-bottom: 24px; }
-  .record { background: #fff; border: 1px solid #e2e2e2; border-radius: 8px; padding: 16px; margin-bottom: 20px; break-inside: avoid; }
-  .record header { display: flex; align-items: baseline; gap: 12px; }
-  .record .index { color: #1677ff; font-weight: 700; }
-  .record h2 { margin: 0; font-size: 18px; flex: 1; }
-  .record .time { color: #1677ff; font-variant-numeric: tabular-nums; }
-  .record .meta { color: #8c8c8c; font-size: 13px; }
-  .row { display: flex; gap: 12px; margin-top: 8px; }
-  .row.stacked { flex-direction: column; }
-  .row figure { margin: 0; flex: 1; }
-  .row img { width: 100%; border-radius: 4px; }
-  figcaption { font-size: 12px; color: #8c8c8c; margin-top: 4px; }
-  .notes { margin-top: 8px; white-space: pre-wrap; }
-  @media print { body { padding: 0; background: #fff; } .record { border: none; border-bottom: 1px solid #e2e2e2; } }
-</style>
-</head>
-<body>
-<h1>示例项目复盘报告</h1>
-<p class="sub">视频：landscape.mp4 · 时长：00:00:10 · 分辨率：1280×720 · 导出时间：2026-08-05 · 记录数：2</p>
-
-<article class="record">
-  <header><span class="index">#001</span><h2>团战前站位过于靠前</h2><span class="time">00:00:02</span></header>
-  <p class="meta">分类：团战 · 重要程度：高</p>
-  <div class="row side">
-    <figure><img src="images/example-001.png" alt="原图"><figcaption>原图</figcaption></figure>
-    <figure><img src="images/example-001.png" alt="标注图"><figcaption>标注图</figcaption></figure>
-  </div>
-  <p class="notes">箭头指向危险区域，建议提前回撤。</p>
-</article>
-
-<article class="record">
-  <header><span class="index">#002</span><h2>竖版素材示例</h2><span class="time">00:00:02 – 00:00:04</span></header>
-  <p class="meta">分类：示例 · 重要程度：中</p>
-  <div class="row">
-    <figure><img src="images/example-002.png" alt="标注图"><figcaption>标注图（竖版）</figcaption></figure>
-  </div>
-  <p class="notes">竖版视频在报告中的比例保持正确。</p>
-</article>
-
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>示例项目复盘报告</title>
+    <style>
+      @page { size: A4 portrait; margin: 0; }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; background: #dfe4e8; color: #17202a; font-family: "Microsoft YaHei", sans-serif; }
+      .page { position: relative; width: 210mm; height: 297mm; margin: 10mm auto; padding: 18mm 18mm 16mm; overflow: hidden; background: #fff; break-after: page; }
+      .cover { display: flex; flex-direction: column; justify-content: space-between; color: #fff; background: linear-gradient(145deg, #102a43, #1f4e5f 58%, #3b7d78); }
+      .mark { width: 18mm; height: 2mm; background: #efb366; }
+      .cover-main { margin-top: 45mm; }
+      .kicker { color: #efb366; font-size: 9pt; font-weight: 700; letter-spacing: .16em; }
+      h1 { margin: 7mm 0 4mm; font-size: 30pt; }
+      .subtitle { font-size: 15pt; opacity: .9; }
+      .cover-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm 12mm; padding-top: 8mm; border-top: 1px solid #ffffff47; font-size: 9pt; }
+      .cover-meta strong { display: block; margin-top: 1mm; font-size: 11pt; }
+      .header { display: flex; justify-content: space-between; padding-bottom: 3mm; border-bottom: .3mm solid #d8e0e5; color: #6c7a86; font-size: 8.5pt; }
+      h2 { color: #173b4b; }
+      .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; margin: 10mm 0; }
+      .stat { padding: 5mm 3mm; border-top: 1.3mm solid #3b7d78; background: #f1f5f6; }
+      .stat strong { display: block; color: #173b4b; font-size: 20pt; }
+      .toc-row { display: grid; grid-template-columns: 12mm 1fr 30mm 12mm; gap: 3mm; align-items: center; min-height: 12mm; border-bottom: .25mm solid #e6ebee; }
+      .green { color: #3b7d78; font-weight: 700; }
+      .record-heading { display: flex; justify-content: space-between; align-items: flex-start; margin: 10mm 0 4mm; }
+      .record-heading h2 { margin: 2mm 0 0; font-size: 20pt; }
+      .time { padding: 2.5mm 4mm; background: #edf4f3; color: #27655f; font-weight: 700; }
+      .tags { display: flex; gap: 2mm; margin-bottom: 6mm; }
+      .tags span { padding: 1.5mm 3mm; border-radius: 5mm; background: #eff2f4; color: #52616d; font-size: 8.5pt; }
+      .figures { display: flex; gap: 5mm; }
+      figure { flex: 1; min-width: 0; margin: 0; }
+      .image-frame { display: flex; align-items: center; justify-content: center; height: 120mm; padding: 2mm; background: #f2f4f5; border: .25mm solid #dce3e7; }
+      img { max-width: 100%; max-height: 100%; object-fit: contain; }
+      figcaption { margin-top: 2mm; text-align: center; color: #6c7a86; font-size: 8pt; }
+      .notes { margin-top: 6mm; padding: 4mm 5mm; border-left: 1.2mm solid #efb366; background: #fbf8f2; }
+      .footer { position: absolute; right: 18mm; bottom: 8mm; left: 18mm; display: flex; justify-content: space-between; padding-top: 2.5mm; border-top: .25mm solid #d8e0e5; color: #7b8790; font-size: 8pt; }
+      @media print { html, body { background: #fff; } .page { margin: 0; } }
+    </style>
+  </head>
+  <body>
+    <section class="page cover">
+      <div><div class="mark"></div><div class="cover-main"><div class="kicker">VIDEO REVIEW REPORT</div><h1>示例项目</h1><div class="subtitle">视频复盘报告</div></div></div>
+      <div class="cover-meta"><div>视频文件<strong>example.mp4</strong></div><div>报告记录<strong>2 条</strong></div><div>视频规格<strong>1280 × 720 · 00:00:10</strong></div><div>生成时间<strong>2026-08-12</strong></div></div>
+      <footer class="footer"><span>示例项目 · 视频复盘报告</span><span>第 1 页 / 共 4 页</span></footer>
+    </section>
+    <section class="page">
+      <div class="header"><span>示例项目</span><span>报告概览</span></div><h2>概览与目录</h2>
+      <div class="stats"><div class="stat"><strong>2</strong>记录总数</div><div class="stat"><strong>2</strong>画面记录</div><div class="stat"><strong>0</strong>文字记录</div><div class="stat"><strong>1</strong>高重要记录</div></div>
+      <div class="toc-row"><span class="green">01</span><span>关键区域与行动路线</span><span>00:00:02</span><span class="green">3</span></div>
+      <div class="toc-row"><span class="green">02</span><span>竖版画面布局检查</span><span>00:00:04</span><span class="green">4</span></div>
+      <footer class="footer"><span>示例项目 · 视频复盘报告</span><span>第 2 页 / 共 4 页</span></footer>
+    </section>
+    <section class="page">
+      <div class="header"><span>示例项目</span><span>记录 01</span></div>
+      <div class="record-heading"><div><div class="kicker">REVIEW NOTE 01</div><h2>关键区域与行动路线</h2></div><div class="time">00:00:02</div></div>
+      <div class="tags"><span>演示</span><span>重要程度：高</span></div>
+      <div class="figures"><figure><div class="image-frame"><img src="images/example-001.png" alt="原始画面" /></div><figcaption>原始画面</figcaption></figure><figure><div class="image-frame"><img src="images/example-001.png" alt="标注画面" /></div><figcaption>标注画面</figcaption></figure></div>
+      <div class="notes"><strong>复盘说明</strong><p>脚本生成的测试画面，用于演示横版图片在 A4 页面中的适配方式。</p></div>
+      <footer class="footer"><span>示例项目 · 视频复盘报告</span><span>第 3 页 / 共 4 页</span></footer>
+    </section>
+    <section class="page">
+      <div class="header"><span>示例项目</span><span>记录 02</span></div>
+      <div class="record-heading"><div><div class="kicker">REVIEW NOTE 02</div><h2>竖版画面布局检查</h2></div><div class="time">00:00:04</div></div>
+      <div class="tags"><span>布局</span><span>重要程度：中</span></div>
+      <div class="figures"><figure><div class="image-frame"><img src="images/example-002.png" alt="竖版标注画面" /></div><figcaption>竖版标注画面</figcaption></figure></div>
+      <div class="notes"><strong>复盘说明</strong><p>竖版截图限制在页面内容区内，不会拉长页面或破坏分页。</p></div>
+      <footer class="footer"><span>示例项目 · 视频复盘报告</span><span>第 4 页 / 共 4 页</span></footer>
+    </section>
+  </body>
 </html>
-

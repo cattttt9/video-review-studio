@@ -136,10 +136,8 @@ mod tests {
 
     #[test]
     fn migration_creates_schema_and_is_idempotent() {
-        let dir = std::env::temp_dir().join(format!(
-            "vrs-db-test-{}",
-            uuid::Uuid::new_v4().simple()
-        ));
+        let dir =
+            std::env::temp_dir().join(format!("vrs-db-test-{}", uuid::Uuid::new_v4().simple()));
         fs::create_dir_all(&dir).unwrap();
         let mut conn = Connection::open(dir.join("project.db")).unwrap();
         migrate(&mut conn).unwrap();
@@ -159,7 +157,9 @@ mod tests {
         assert!(tables.contains(&"schema_migrations".to_string()));
 
         let count: i64 = conn
-            .query_row("SELECT COUNT(*) FROM schema_migrations", [], |row| row.get(0))
+            .query_row("SELECT COUNT(*) FROM schema_migrations", [], |row| {
+                row.get(0)
+            })
             .unwrap();
         assert_eq!(count, MIGRATIONS.len() as i64);
         let _ = fs::remove_dir_all(&dir);
