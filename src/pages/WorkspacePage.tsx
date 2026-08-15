@@ -158,13 +158,24 @@ export default function WorkspacePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.id]);
 
-  // 解析可播放视频
+  const playableProjectId = project?.id;
+  const playableSourcePath = project?.resolvedVideoPath;
+  const playableSourceMode = project?.sourceMode;
+
+  // 仅在项目或视频源实际变化时重新解析视频。记录数量等项目统计刷新
+  // 不应重建 video 元素，否则会把当前播放位置重置为 0。
   useEffect(() => {
-    if (!project) return;
+    if (!playableProjectId) return;
     setVideoUrl(null);
     setVideoKind(null);
+    useVideoStore.setState({
+      currentTimeMs: 0,
+      durationMs: 0,
+      playing: false,
+      ready: false,
+    });
     videoService
-      .resolvePlayableVideo(project.id)
+      .resolvePlayableVideo(playableProjectId)
       .then((result) => {
         setVideoUrl(assetUrl(result.path));
         setVideoKind(result.kind);
@@ -173,7 +184,7 @@ export default function WorkspacePage() {
         setVideoUrl(null);
         setVideoKind(null);
       });
-  }, [project]);
+  }, [playableProjectId, playableSourcePath, playableSourceMode]);
 
   const needsProxy = useMemo(() => {
     if (!project?.videoMeta || videoKind !== 'source') return false;
@@ -827,8 +838,14 @@ export default function WorkspacePage() {
                   }
                   onLoadedMetadata={(e) => {
                     const el = e.currentTarget;
-                    video.setDurationMs(Math.round((el.duration || 0) * 1000));
+                    const durationMs = Math.round((el.duration || 0) * 1000);
+                    const playback = useVideoStore.getState();
+                    video.setDurationMs(durationMs);
                     video.setReady(true);
+                    el.playbackRate = playback.rate;
+                    el.volume = playback.volume;
+                    el.muted = playback.muted;
+                    videoActions.seek(playback.currentTimeMs);
                   }}
                   onPlay={() => video.setPlaying(true)}
                   onPause={() => video.setPlaying(false)}

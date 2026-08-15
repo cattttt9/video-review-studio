@@ -53,11 +53,16 @@ export const videoActions = {
   },
   seek(ms: number) {
     const el = videoElement;
-    if (!el) return;
-    const durationMs = Number.isFinite(el.duration) ? el.duration * 1000 : ms;
+    const knownDurationMs = useVideoStore.getState().durationMs;
+    const durationMs =
+      el && Number.isFinite(el.duration)
+        ? el.duration * 1000
+        : knownDurationMs > 0
+          ? knownDurationMs
+          : Number.POSITIVE_INFINITY;
     const targetMs = Math.min(durationMs, Math.max(0, ms));
     useVideoStore.setState({ currentTimeMs: targetMs });
-    el.currentTime = targetMs / 1000;
+    if (el) el.currentTime = targetMs / 1000;
   },
   skip(seconds: number) {
     const el = videoElement;

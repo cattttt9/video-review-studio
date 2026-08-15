@@ -13,6 +13,7 @@ import { projectService } from '../services/project';
 import { useProjectStore } from '../stores/projectStore';
 import { describeError } from '../services/invoke';
 import type { RecentProjectEntry } from '../types';
+import { prepareCreateProjectForm } from './projectCreation';
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -22,8 +23,15 @@ export default function HomePage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [dragging, setDragging] = useState(false);
-  const [droppedVideo, setDroppedVideo] = useState<string | null>(null);
   const [form] = Form.useForm();
+
+  const openCreateProject = useCallback(
+    (videoPath?: string) => {
+      prepareCreateProjectForm(form, videoPath);
+      setCreateOpen(true);
+    },
+    [form],
+  );
 
   const loadRecent = useCallback(async () => {
     try {
@@ -53,8 +61,7 @@ export default function HomePage() {
             setDragging(false);
             const path = event.payload.paths?.[0];
             if (path) {
-              setDroppedVideo(path);
-              setCreateOpen(true);
+              openCreateProject(path);
             }
           }
         });
@@ -65,7 +72,7 @@ export default function HomePage() {
     return () => {
       unlisten?.();
     };
-  }, []);
+  }, [openCreateProject]);
 
   const openProject = async (dir: string) => {
     try {
@@ -89,7 +96,6 @@ export default function HomePage() {
     });
     if (typeof path === 'string') {
       form.setFieldValue('videoPath', path);
-      setDroppedVideo(path);
     }
   };
 
@@ -131,11 +137,7 @@ export default function HomePage() {
             type="primary"
             size="large"
             icon={<PlusOutlined />}
-            onClick={() => {
-              setDroppedVideo(null);
-              form.resetFields();
-              setCreateOpen(true);
-            }}
+            onClick={() => openCreateProject()}
           >
             新建项目
           </Button>
@@ -154,11 +156,7 @@ export default function HomePage() {
       <div className="vrs-home-body">
         <div
           className={`vrs-drop-zone ${dragging ? 'dragging' : ''}`}
-          onClick={() => {
-            setDroppedVideo(null);
-            form.resetFields();
-            setCreateOpen(true);
-          }}
+          onClick={() => openCreateProject()}
         >
           <VideoCameraOutlined style={{ fontSize: 28, marginBottom: 8 }} />
           <div>将视频文件拖入此处，或点击选择视频，自动进入新建项目流程</div>
@@ -236,29 +234,46 @@ export default function HomePage() {
         onOk={handleCreate}
         onCancel={() => setCreateOpen(false)}
         width={520}
-        destroyOnHidden
+        forceRender
       >
-        <Form form={form} layout="vertical" initialValues={{ parentDir: '' }}>
+        <Form
+          form={form}
+          layout="vertical"
+          initialValues={{ parentDir: '' }}
+          autoComplete="off"
+        >
           <Form.Item
             name="name"
             label="项目名称"
             rules={[{ required: true, message: '请输入项目名称' }]}
           >
-            <Input placeholder="例如：CS2 对局复盘" />
+            <Input
+              placeholder="例如：CS2 对局复盘"
+              autoComplete="off"
+              allowClear
+            />
           </Form.Item>
-          <Form.Item name="videoPath" label="视频文件（可稍后绑定）">
+          <Form.Item label="视频文件（可稍后绑定）">
             <Space.Compact style={{ width: '100%' }}>
-              <Input
-                value={droppedVideo ?? undefined}
-                placeholder="选择或拖入视频"
-                onChange={(e) => setDroppedVideo(e.target.value || null)}
-              />
+              <Form.Item name="videoPath" noStyle>
+                <Input
+                  aria-label="视频文件路径"
+                  placeholder="选择或拖入视频"
+                  autoComplete="off"
+                />
+              </Form.Item>
               <Button onClick={pickVideo}>选择</Button>
             </Space.Compact>
           </Form.Item>
-          <Form.Item name="parentDir" label="项目保存位置">
+          <Form.Item label="项目保存位置">
             <Space.Compact style={{ width: '100%' }}>
-              <Input placeholder="留空则保存到文档目录" />
+              <Form.Item name="parentDir" noStyle>
+                <Input
+                  aria-label="项目保存位置"
+                  placeholder="留空则保存到文档目录"
+                  autoComplete="off"
+                />
+              </Form.Item>
               <Button onClick={pickParentDir}>选择</Button>
             </Space.Compact>
           </Form.Item>
