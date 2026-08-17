@@ -89,7 +89,7 @@ jobs:
           } | Set-Content "$out/SHA256SUMS.txt" -Encoding utf8
 
       - name: Attest Windows installer
-        uses: actions/attest-build-provenance@v3
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: src-tauri/target/release/release-assets/*-setup.exe
 
