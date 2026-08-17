@@ -35,7 +35,7 @@ npm run tauri build
 
 ## 安装包
 
-- NSIS 安装包：`src-tauri/target/release/bundle/nsis/Video Review Studio_0.1.3_x64-setup.exe`
+- NSIS 安装包：`src-tauri/target/release/bundle/nsis/Video Review Studio_0.1.4_x64-setup.exe`
 - 便携可执行：`src-tauri/target/release/video-review-studio.exe`
 - 语言：简体中文 + English
 
@@ -65,8 +65,8 @@ npm run tauri build
 示例：
 
 ```powershell
-git tag v0.1.3
-git push origin v0.1.3
+git tag v0.1.4
+git push origin v0.1.4
 ```
 
 ## 构建产物位置

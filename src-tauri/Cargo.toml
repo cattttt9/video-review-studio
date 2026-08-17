@@ -1,6 +1,6 @@
 [package]
 name = "video-review-studio"
-version = "0.1.3"
+version = "0.1.4"
 description = "Video Review Studio - 本地视频拉片与游戏复盘工具"
 authors = ["Video Review Studio"]
 edition = "2021"
