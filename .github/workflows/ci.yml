@@ -37,5 +37,11 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri -> target
+      - name: Create test-only FFmpeg sidecar placeholders
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force src-tauri/binaries | Out-Null
+          New-Item -ItemType File -Force src-tauri/binaries/ffmpeg-x86_64-pc-windows-msvc.exe | Out-Null
+          New-Item -ItemType File -Force src-tauri/binaries/ffprobe-x86_64-pc-windows-msvc.exe | Out-Null
       - run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
       - run: cargo test --manifest-path src-tauri/Cargo.toml --locked
