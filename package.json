@@ -23,7 +23,7 @@
     "@ant-design/icons": "^5.6.1",
     "@tauri-apps/api": "^2.8.0",
     "@tauri-apps/plugin-dialog": "^2.2.0",
-    "antd": "^5.26.0",
+    "antd": "^6.6.0",
     "dayjs": "^1.11.13",
     "konva": "^9.3.18",
     "react": "^19.1.0",
